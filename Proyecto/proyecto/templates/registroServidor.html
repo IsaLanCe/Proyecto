@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block titulo %}Login{% endblock %}
+
+{% block scripts %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock %}
+
+{% block contenido %}
+{% if errores %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    
+    <strong>Errores:</strong>
+    <ul id="lista-errores">
+	{% for error in errores %}
+	<li>{{ error }}</li>
+	{% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form class="was-validated" action="/registrarServidor/" method="POST">
+	 {% csrf_token %}     
+   
+     <div class="mb-3 mt-3">
+	<label for="Usuario">Etiqueta del Servidor</label>
+	<input type="text" class="form-control" id="server" placeholder="Ingresa una etiqueta para identificar el servidor" name="server" pattern="[a-zA-Z0-9 _-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Debes ingresar un nombre y sin caracteres epsciales</div>
+     </div>
+     </div>
+
+   
+    <div class="mb-3">
+	<label for="passwd">Dirección IP</label>
+	<input type="text" class="form-control" id="ip" placeholder="Ingresa la IP, Ejemplo:192.168.0.1" name="ip" pattern="[a-zA-Z0-9 _-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Solo debes ingresar numeros sin caracteres especiales</div>
+     </div>
+    </div>
+  
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+
+{% endblock %}

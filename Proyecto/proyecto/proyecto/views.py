@@ -37,3 +37,8 @@ def panel(request):
 	p = 'panel.html'
 	if request.method == 'GET':
 		return render(request,'panel.html')
+	
+def registrarServidor(request):
+	r = 'registroServidor.html'
+	if request.method == 'GET':
+		return render(request, r)

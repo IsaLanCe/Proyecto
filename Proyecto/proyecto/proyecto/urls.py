@@ -23,4 +23,5 @@ urlpatterns = [
     path('login/', vista.login),
     path('', vista.login),
     path('panel/', vista.panel),
+    path('registrarServidor/', vista.registrarServidor),
 ]
