@@ -79,13 +79,16 @@ WSGI_APPLICATION = 'proyecto.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+db = os.environ.get('DATABASE')
+passwd = os.environ.get('PASSWD_DB')
+user = os.environ.get('USER_DB')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('DATABASE'),
-        'USER': os.environ.get('USER_DB'),
-        'PASSWORD': os.environ.get('PASSWD_DB'),
+        'NAME': db,
+        'USER': user,
+        'PASSWORD': passwd,
         'HOST':'localhost',
         'PORT':'3306',
     }
