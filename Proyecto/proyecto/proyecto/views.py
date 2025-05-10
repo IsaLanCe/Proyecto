@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.template import Template, Context
 from administrador.models import Administrador
 from administrador.models import OTP
+from proyecto import decoradores
 from . import hasher as hash
 import random
 import string
@@ -84,22 +85,31 @@ def login(request):
 		except:
 			errores.append("Lo sentimos, hubo una falla")
 			return render(request, 'login.html', {'errores':errores})
-		
+
+@decoradores.login_requerido		
 def panel(request):
 	p = 'panel.html'
 	if request.method == 'GET':
 		return render(request,'panel.html')
-	
+
+@decoradores.login_requerido	
 def registrarServidor(request):
 	r = 'registroServidor.html'
 	if request.method == 'GET':
 		return render(request, r)
-	
+
+@decoradores.login_requerido
 def administrar_servicios(request):
 	a = 'administrar_servicios.html'
 	if request.method == 'GET':
-		return render(request,a)
+		if not requests.session.get('otp_verificado', False):
+			return redirect ('/verificar')
+		
+		requests.session['otp_verificado'] = False
 
+		return render(request, a)
+
+@decoradores.login_requerido
 def generar_otp_view(request):
 	v = 'verificar_otp.html'
 	if request.method == 'POST':
@@ -110,6 +120,7 @@ def generar_otp_view(request):
 		enviar_otp_telegram(code)
 		return render(request, v)
 
+@decoradores.otp_requerido
 def verificar_otp_view(request):
 	errores = []
 	v = 'verificar_otp.html'
@@ -117,22 +128,34 @@ def verificar_otp_view(request):
 
 	if request.method == 'POST':
 		otp_input = request.POST.get('otp')
+
 		if campo_vacio(otp_input):
 			errores.append("El codigo de verificación es obligatorio")
+			print("1")
 		elif validar_campo(otp_input):
 			errores.append("No debe tener caracteres especiales")
+			print("2")
 		else:
 			try:
 				otp = OTP.objects.get(code=otp_input, esta_usado=False)
-
+				print("3")
 				if otp.esta_expirado():
 					errores.append("El codigo de verificación ha expirado")
+					print("4")
 				else:
 					otp.esta_usado = True
+					print("5")
 					otp.save()
-					return redirect()
+					request.session['otp_sesion'] = True
+					return redirect('/administrarServicios')
 			except OTP.DoesNotExist:
-				errores.append("El codigo es incorrecto o ya fue usado")
+				errores.append("Error. Solicite denuevo la pagina")
+				print("6")
+		
+		return render(request, 'verificar_otp.html', {'errores': errores})
 
-	return render(request, 'verificar_otp.html', {'errores':errores})
+@decoradores.login_requerido
+def levantar_servicios(request):
+	l = 'levantar_servicios.html'
+	return render (request, l)
 	
