@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block titulo %}DashBoard{% endblock %}
+
+
+{% block contenido %}
+{% if errores %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    
+    <strong>Errores:</strong>
+    <ul id="lista-errores">
+	{% for error in errores %}
+	<li>{{ error }}</li>
+	{% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<h1 style="text-align: center;">Bienvenido a la seccion que permite Levantar, Detener o Reiniciar Servicios</h1>
+
+{% endblock %}

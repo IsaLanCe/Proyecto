@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block titulo %}Login{% endblock %}
+
+{% block scripts %}
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+{% endblock %}
+
+{% block contenido %}
+{% if errores %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    
+    <strong>Errores:</strong>
+    <ul id="lista-errores">
+	{% for error in errores %}
+	<li>{{ error }}</li>
+	{% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form class="was-validated" action="/verificar/" method="POST">
+	 {% csrf_token %}     
+   
+     <div class="mb-3 mt-3">
+	<label for="otp">Ingresa el codigo de seguridad:</label>
+	<input type="text" class="form-control" id="otp" placeholder="XXXXXX" name="otp" pattern="[a-zA-Z0-9 _-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">El codigo de verificacion es obligatorio y no debe contener caracteres especiales</div>
+     </div>
+     </div>
+
+    <br/>
+  
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+
+
+{% endblock %}
