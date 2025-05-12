@@ -24,7 +24,7 @@ urlpatterns = [
     path('', vista.login),
     path('panel/', vista.panel),
     path('registrarServidor/', vista.registrarServidor),
-    path('verificar/', vista.generar_otp_view),
+    path('verificar/', vista.verificar_otp_view),
     path('administrarServicios/', vista.administrar_servicios),
     path('levantarServicios/', vista.levantar_servicios),
 ]
