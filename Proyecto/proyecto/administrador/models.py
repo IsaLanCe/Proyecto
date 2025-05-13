@@ -6,7 +6,8 @@ from datetime import timedelta
 class Administrador(models.Model):
 	user = models.CharField(max_length=20, unique=True)
 	nombre = models.CharField(max_length=50)
-	passwd = models.CharField(max_length=129)
+	passwdHash = models.BinaryField(max_length=60, default=b'')
+	salt = models.BinaryField(max_length=29, default=b'')
 
 class OTP(models.Model):
 	code = models.CharField(max_length=6)

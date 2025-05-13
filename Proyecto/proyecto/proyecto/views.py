@@ -11,6 +11,7 @@ import sys
 import requests
 import re
 import os
+import bcrypt
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
@@ -67,15 +68,14 @@ def login(request):
 		return render(request,"login.html")
 	elif request.method == 'POST':
 		usuario = request.POST.get('usuario','')
-		passwd = request.POST.get('passwd','')
+		passwd = request.POST.get('passwd','').encode('utf-8')
 
 		try:
 			admin_bd = Administrador.objects.get(user=usuario)
 			user_bd = admin_bd.user
-			passwd_bd = admin_bd.passwd
+			passwd_bd = admin_bd.passwdHash
 
-
-			if user_bd == usuario and passwd == passwd_bd:
+			if bcrypt.checkpw(passwd, passwd_bd):
 				request.session['logueado'] = True
 				request.session['usuario'] = usuario
 				code = generar_otp()
