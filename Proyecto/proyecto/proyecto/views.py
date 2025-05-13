@@ -20,13 +20,13 @@ def campo_vacio(campo):
     return campo.strip() == ''
 
 def validar_campo(campo):
-    if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
+    if re.match(r'^[a-zA-Z0-9]+$', campo):
         return False
     else:
         return True
 	
 def generar_otp():
-	size = 6
+	size = 10
 	otp = ''.join([random.choice( string.ascii_uppercase + string.ascii_lowercase + string.digits ) for n in range(size)])
 
 	return otp
@@ -85,23 +85,30 @@ def login(request):
 			else:
 				errores.append("Usuario y/o Contraseña incorrecta")
 				return render(request, 'login.html', {'errores': errores})
-		except:
-			errores.append("Lo sentimos, hubo una falla")
+		except Administrador.DoesNotExist:
+			errores.append("Usuario no encontrado")
+		except Exception as e:
+			errores.append(f"Error interno: {str(e)}")
+		
+		if errores:
 			return render(request, 'login.html', {'errores':errores})
 
-@decoradores.login_requerido		
+@decoradores.login_requerido
+@decoradores.token_requerido		
 def panel(request):
 	p = 'panel.html'
 	if request.method == 'GET':
 		return render(request,'panel.html')
 
-@decoradores.login_requerido	
+@decoradores.login_requerido
+@decoradores.token_requerido		
 def registrarServidor(request):
 	r = 'registroServidor.html'
 	if request.method == 'GET':
 		return render(request, r)
 
 @decoradores.login_requerido
+@decoradores.token_requerido
 def administrar_servicios(request):
 	a = 'administrar_servicios.html'
 	return render(request, a)
@@ -111,20 +118,23 @@ def administrar_servicios(request):
 def verificar_otp_view(request):
 	errores = []
 	v = 'verificar_otp.html'
-	
+	l = 'login.html'
 	if request.method == 'GET':
 		return render (request,v)
 	elif request.method == 'POST':
 		otp_input = request.POST.get('otp','')
-
+		longitud_otp = 10
 		if campo_vacio(otp_input):
 			errores.append("El codigo de verificación es obligatorio")
 		elif validar_campo(otp_input):
 			errores.append("No debe tener caracteres especiales")
+		elif len(otp_input)<longitud_otp or len(otp_input) >longitud_otp:
+			errores.append("La longitud del codigo de verificación debe ser de 10 digitos")
 		else:
 			try:
 				otp = OTP.objects.get(code=otp_input)
 				if otp.code == otp_input:
+					request.session['autorizado'] = True
 					return redirect('/panel')
 				else:
 					errores.append("Logueate denuevo en la pagina")
@@ -133,11 +143,14 @@ def verificar_otp_view(request):
 				errores.append("Error. Solicite denuevo la pagina")
 		
 		if errores:
-			return render(request, 'verificar_otp.html', {'errores': errores})
+			request.session['logueado'] = False
+			request.session['usuario'] = ''
+			return render(request, l, {'errores': errores})
 		else:
 			return redirect('/panel')	
 
 @decoradores.login_requerido
+@decoradores.token_requerido
 def levantar_servicios(request):
 	l = 'levantar_servicios.html'
 	return render (request, l)

@@ -10,4 +10,10 @@ def login_requerido(vista):
         return vista(request, *args, **kargs)
     return interna
 
-
+def token_requerido(vista):
+    @wraps(vista)
+    def interna(request, *args, **kargs):
+        if not request.session.get('autorizado', False):
+            return redirect('/login')
+        return vista(request, *args, **kargs)
+    return interna
