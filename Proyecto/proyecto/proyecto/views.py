@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.template import Template, Context
 from administrador.models import Administrador
 from administrador.models import OTP
+from datetime import datetime, timedelta
 from proyecto import decoradores
 from . import hasher as hash
 import random
@@ -37,6 +38,10 @@ def eliminar_otps_anteriores():
 def guardar_otp(code):
 	eliminar_otps_anteriores()
 	return OTP.objects.create(code=code)
+
+def validad_caducidad_otp(fecha_creacion):
+	hora_actual = datetime.now(fecha_creacion.tzinfo)
+	return hora_actual - fecha_creacion > timedelta(minutes=1)
 
 def enviar_otp_telegram(code):
 	
@@ -133,7 +138,9 @@ def verificar_otp_view(request):
 		else:
 			try:
 				otp = OTP.objects.get(code=otp_input)
-				if otp.code == otp_input:
+				if validad_caducidad_otp(otp.created_at):
+					errores.append("El codigo de verificación expiro")
+				elif otp.code == otp_input:
 					request.session['autorizado'] = True
 					return redirect('/panel')
 				else:
