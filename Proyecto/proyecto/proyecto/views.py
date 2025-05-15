@@ -17,11 +17,25 @@ import bcrypt
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
 
+def contiene_letra(contrasena):
+    return any(caracter.isalpha() for caracter in contrasena)
+
+def contiene_digito(contrasena):
+    return any(caracter.isdigit() for caracter in contrasena)
+
+def contiene_numero(contrasena):
+    return contrasena.isdigit()
+
+def contiene_caracter_especial_seguro(contrasena):
+    caracteres_permitidos = r"_$-"
+    return any(c in caracteres_permitidos for c in contrasena)
+
+
 def campo_vacio(campo):
     return campo.strip() == ''
 
 def validar_campo(campo):
-    if re.match(r'^[a-zA-Z0-9]+$', campo):
+    if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
         return False
     else:
         return True
@@ -42,6 +56,13 @@ def guardar_otp(code):
 def validad_caducidad_otp(fecha_creacion):
 	hora_actual = datetime.now(fecha_creacion.tzinfo)
 	return hora_actual - fecha_creacion > timedelta(minutes=1)
+
+def validar_tamanio_password(passwd):
+	tamanio = 12
+	if len(passwd) < tamanio:
+		return True
+	else:
+		return False
 
 def enviar_otp_telegram(code):
 	
@@ -155,6 +176,34 @@ def verificar_otp_view(request):
 			return render(request, l, {'errores': errores})
 		else:
 			return redirect('/panel')	
+
+def registrar_usuario(request):
+	r = 'registrar.html'
+	errores = []
+	if request.method == 'GET':
+		return render (request,r)
+	elif request.method == 'POST':
+		username = request.POST.get('user', '')
+		nombre = request.POST.get('nombre','')
+		passwd = request.POST.get('passwd','')
+		passwd2 = request.POST.get('passwd2','')
+		
+		if campo_vacio(username):
+			errores.append("El username no debe estar vacio")
+		if campo_vacio(nombre):
+			errores.append("El nombre no debe ir vacio")
+		if campo_vacio(passwd):
+			errores.append("La contraseña no debe ir vacia")
+		if campo_vacio(passwd2):
+			errores.append("La confirmacion de contraseña no debe ir vacia")
+
+		###Validaciones base para los demas campos
+		if validar_campo(username):
+			errores.append("El username no debe contener caracteres especiales")
+		if validar_campo(nombre):
+			errores.append("El nombre no debe contener caracteres especiales")
+		
+		##Validaciones explicitas para contraseñas
 
 @decoradores.login_requerido
 @decoradores.token_requerido
