@@ -19,7 +19,7 @@
 </div>
 {% endif %}
 
-<form class="was-validated" action="/registrar/" method="POST">
+<form class="was-validated" action="/registro/" method="POST">
     {% csrf_token %}     
   
    <div class="mb-3 mt-3">
@@ -32,7 +32,7 @@
     
    <div class="mb-3 mt-3">
    <label for="nombre">Nombre Completo:</label>
-   <input type="text" class="form-control" id="nombre" placeholder="Ingresa tu nombre completo" name="nombre" pattern="[a-zA-Z]+" required>
+   <input type="text" class="form-control" id="nombre" placeholder="Ingresa tu nombre completo" name="nombre" pattern="[a-zA-Z ]+" required>
    <div class="valid-feedback">¡OK!</div>
    <div class="invalid-feedback">El nombre es obligatorio y no debe contener caracteres especiales</div>
         </div>
@@ -40,7 +40,7 @@
   
    <div class="mb-3">
    <label for="passwd">Contraseña:</label>
-   <input type="password" class="form-control" id="passwd" placeholder="Ingresa tu contraseña" name="passwd" pattern="[a-zA-Z0-9 _-$]+" required>
+   <input type="password" class="form-control" id="passwd" placeholder="Ingresa tu contraseña" name="passwd" pattern="[a-zA-Z0-9_-$]+" required>
    <div class="valid-feedback">¡OK!</div>
    <div class="invalid-feedback">Asegurate de ingresar tu contraseña de forma correcta</div>
     </div>
@@ -48,7 +48,7 @@
 
    <div class="mb-3">
        <label for="passwd2">Confirmación de Contraseña:</label>
-       <input type="password" class="form-control" id="passwd2" placeholder="Ingresa la confirmación de contraseña" name="passwd2" pattern="[a-zA-Z0-9 _-$]+" required>
+       <input type="password" class="form-control" id="passwd2" placeholder="Ingresa la confirmación de contraseña" name="passwd2" pattern="[a-zA-Z0-9_-$]+" required>
        <div class="valid-feedback">¡OK!</div>
        <div class="invalid-feedback">Asegurate de ingresar tu validación de contraseña de forma correcta</div>
         </div>
@@ -57,7 +57,7 @@
    <div class="g-recaptcha" data-sitekey="6Ld8MS8rAAAAANBp-6QHjhRnr8G5cIv3zPyv4mOE"></div>
    <br/>
  
-   <button type="submit" class="btn btn-primary">Submit</button>
+   <button type="submit" class="btn btn-primary">Enviar</button>
 </form>
 
 

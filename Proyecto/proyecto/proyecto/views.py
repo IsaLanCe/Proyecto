@@ -20,16 +20,22 @@ chat = os.environ.get('CHAT_ID')
 def contiene_letra(contrasena):
     return any(caracter.isalpha() for caracter in contrasena)
 
-def contiene_digito(contrasena):
-    return any(caracter.isdigit() for caracter in contrasena)
-
 def contiene_numero(contrasena):
-    return contrasena.isdigit()
+    return any(c.isdigit() for c in contrasena)
 
 def contiene_caracter_especial_seguro(contrasena):
     caracteres_permitidos = r"_$-"
     return any(c in caracteres_permitidos for c in contrasena)
 
+def politica_tamanio_contrasena(contrasena):
+	tamanio = 12
+	if len(contrasena) < tamanio:
+		return  True
+	else:
+		return False
+
+def tiene_mayuscula(contrasena):
+	return any(c.isupper() for c in contrasena)
 
 def campo_vacio(campo):
     return campo.strip() == ''
@@ -204,6 +210,58 @@ def registrar_usuario(request):
 			errores.append("El nombre no debe contener caracteres especiales")
 		
 		##Validaciones explicitas para contraseñas
+		#Verifica la longitud de las contraseñas
+		if politica_tamanio_contrasena(passwd):
+			errores.append("La contraseña debe tener al menos 12 caracteres")
+		if politica_tamanio_contrasena(passwd2):
+			errores.append("La validación de contraseña debe tener al menos 12 caracteres")
+		
+		#Valida si tiene algun digito especial seguro
+		if not contiene_caracter_especial_seguro(passwd):
+			errores.append("La contraseña debe contener algun caracter especial. Caracteres permitidos: _ - $")
+		if not contiene_caracter_especial_seguro(passwd2):
+			errores.append("La contraseña debe contener algun caracter especial. Caracteres permitidos: _ - $")
+
+		#Verifica si tiene letra minuscula
+		if not contiene_letra(passwd):
+			errores.append("La contraseña debe tener letras al menos una minuscula")
+		if not contiene_letra(passwd2):
+			errores.append("La validación de contraseña debe tener al menos una letra minuscula")
+		
+		#Valida si tiene una mayuscula	
+		if not tiene_mayuscula(passwd):
+			errores.append("La contraseña debe tener al menos una mayuscula")
+		if not tiene_mayuscula(passwd2):
+			errores.append("La validación de contraseña debe tener el menos una mayuscula")
+		
+		#Valida si tiene un numero
+		if not contiene_numero(passwd):
+			errores.append("La contraseña debe tener al menos un numero")
+		if not contiene_numero(passwd2):
+			errores.append("La validación de contraseña debe tener al menos un numero")
+
+		if passwd != passwd2:
+			errores.append("Las contraseñas no son iguales")
+
+		if errores:
+			return render(request, r, {'errores': errores})
+		else:
+			try:	
+				passwd = passwd.encode('utf-8')
+				salt = bcrypt.gensalt()
+				hash = bcrypt.hashpw(passwd,salt)
+
+				admin = Administrador(
+				user = username,
+				nombre = nombre,
+				passwdHash = hash,
+				salt = salt
+				)
+				admin.save()
+				return redirect ('/login')
+			except Exception as e:
+				errores.append(f"Error interno: {str(e)}")	
+				return render (request, r, {'errores': errores})
 
 @decoradores.login_requerido
 @decoradores.token_requerido
