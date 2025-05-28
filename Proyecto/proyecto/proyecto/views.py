@@ -167,7 +167,10 @@ def verificar_otp_view(request):
 				otp = OTP.objects.get(code=otp_input)
 				if validad_caducidad_otp(otp.created_at):
 					errores.append("El codigo de verificación expiro")
+					#otp.esta_usado == True
 				elif otp.code == otp_input:
+					#otp.esta_usado = True
+					#otp.save()
 					request.session['autorizado'] = True
 					return redirect('/panel')
 				else:

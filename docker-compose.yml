@@ -1,0 +1,56 @@
+version: '3.7'
+
+services:
+  app:
+   image: aplicacion
+   depends_on:
+     - bd
+   environment:
+     SECRET_KEY: ${SECRET_KEY}
+     BD_NAME: ${BD_NAME}
+     BD_USER: ${BD_USER}
+     BD_PASSWORD: ${BD_PASSWORD}
+     BD_HOST: ${BD_HOST}
+     BD_PORT: ${BD_PORT}
+     RECAPTCHA_PUBLIC_KEY: ${RECAPTCHA_PUBLIC_KEY}
+     RECAPTCHA_PRIVATE_KEY: ${RECAPTCHA_PRIVATE_KEY}
+     TOKEN_T: ${TOKEN_T}
+     CHAT_ID: ${CHAT_ID}
+   volumes:
+     - ./Proyecto/proyecto:/code
+   deploy:
+     resources:
+        limits:
+            cpus: "1"
+            memory: "1024M"
+
+  bd:
+   image: mariadb
+   restart: always
+   environment:
+    MYSQL_DATABASE: ${BD_NAME}
+    MYSQL_USER: ${BD_USER}
+    MYSQL_PASSWORD: ${BD_PASSWORD}
+    MYSQL_ROOT_PASSWORD: ${BD_ROOT_PASS}
+   volumes:
+    - ./data:/var/lib/mysql
+   deploy:
+     resources:
+        limits:
+            cpus: "1"
+            memory: "1024M"
+
+  nginx:
+   image: nginx
+   restart: always
+   ports:
+    - 80:80
+   volumes:
+    - ./nginx:/etc/nginx/conf.d
+    - ./proyecto/static:/static
+   deploy:
+     resources:
+        limits:
+            cpus: "1"
+            memory: "1024M"
+

@@ -88,9 +88,11 @@ WSGI_APPLICATION = 'proyecto.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-db = os.environ.get('DATABASE')
-passwd = os.environ.get('PASSWD_DB')
-user = os.environ.get('USER_DB')
+db = os.environ.get('BD_NAME')
+passwd = os.environ.get('BD_PASSWORD')
+user = os.environ.get('BD_USER')
+dbh = os.environ.get('BD_HOST')
+dbp = os.environ.get('BD_PORT')
 
 DATABASES = {
     'default': {
@@ -98,8 +100,8 @@ DATABASES = {
         'NAME': db,
         'USER': user,
         'PASSWORD': passwd,
-        'HOST':'localhost',
-        'PORT':'3306',
+        'HOST': dbh,
+        'PORT': dbp,
     }
 }
 
