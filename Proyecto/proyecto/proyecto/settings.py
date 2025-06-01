@@ -41,7 +41,7 @@ CSRF_COOKIE_HTTPONLY = True
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
+CSRF_TRUSTED_ORIGINS = ['https://proyecto.com']
 
 # Application definition
 

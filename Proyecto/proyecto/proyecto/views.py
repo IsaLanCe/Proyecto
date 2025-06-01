@@ -18,7 +18,6 @@ import bcrypt
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
 
-
 def recaptcha_verify(recaptcha_response: str) -> bool:
 
     data = {
@@ -29,6 +28,7 @@ def recaptcha_verify(recaptcha_response: str) -> bool:
     response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
     result = response.json()
     return result.get('success', False)
+
 
 def contiene_letra(contrasena):
 	"""Verifica si la contraseña contiene al menos una letra
@@ -188,10 +188,10 @@ def login(request):
 	elif request.method == 'POST':
 		usuario = request.POST.get('usuario','')
 		passwd = request.POST.get('passwd','').encode('utf-8')
-		captcha_token = request.POST.get('g-recaptcha-response',"").strip()
+		captcha_token = request.POST.get('g-recaptcha-response', '').strip()
 		
-#		if not recaptcha_verify(captcha_token):
-#			errores.append("Captcha no autorizado")
+		if not captcha_token or not recaptcha_verify(captcha_token):
+			errores.append("Captcha no autorizado")
 
 		if errores:
 			return render(request, t , {'errores':errores})
