@@ -18,7 +18,9 @@ import bcrypt
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
 
+
 def recaptcha_verify(recaptcha_response: str) -> bool:
+
     data = {
       "secret": settings.RECAPTCHA_PRIVATE_KEY,
       "response": recaptcha_response
@@ -29,16 +31,40 @@ def recaptcha_verify(recaptcha_response: str) -> bool:
     return result.get('success', False)
 
 def contiene_letra(contrasena):
-    return any(caracter.isalpha() for caracter in contrasena)
+	"""Verifica si la contraseña contiene al menos una letra
+
+	Args:
+		contrasena (_type_): Contraseña  a verificar
+
+	Returns:
+		bool: True si la contraseña contiene al menos una letra, False si es el caso contrario
+	"""	
+	return any(caracter.isalpha() for caracter in contrasena)
 
 def contiene_numero(contrasena):
-    return any(c.isdigit() for c in contrasena)
+	""" Verifica si la contraseña contiene al menos un número
+
+	Args:
+		contrasena (_type_): COntraseña a verificar
+
+	Returns:
+		bool: True si la contraseña contiene al menos una letra, False si es el caso contrario
+	"""    
+	return any(c.isdigit() for c in contrasena)
 
 def contiene_caracter_especial_seguro(contrasena):
     caracteres_permitidos = r"_$-"
     return any(c in caracteres_permitidos for c in contrasena)
 
 def politica_tamanio_contrasena(contrasena):
+	""" Verifica si la contraseña cumple con la longitud mínima requeridad (12 caracteres)
+
+	Args:
+		contrasena (_type_): COntraseña a valdiar
+
+	Returns:
+		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario
+	"""	
 	tamanio = 12
 	if len(contrasena) < tamanio:
 		return  True
@@ -46,10 +72,26 @@ def politica_tamanio_contrasena(contrasena):
 		return False
 
 def tiene_mayuscula(contrasena):
+	""" Verifica si la contraseña contiene al menos una letra mayúscula
+
+	Args:
+		contrasena (_type_): COntraseñ a averificar
+
+	Returns:
+		bool: True si la contraseña tiene al menos una letra mayúscula. False en caso contrario
+	"""	
 	return any(c.isupper() for c in contrasena)
 
 def campo_vacio(campo):
-    return campo.strip() == ''
+	""" Verifica si un campo de texto está vacío o solo contiene espacios en blanco
+
+	Args:
+		campo (_type_): cadena a validar
+
+	Returns:
+		bool: True si el cmapo está vacío o solo contiene espacios. False en caso contrario
+	"""    
+	return campo.strip() == ''
 
 def validar_campo(campo):
     if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
@@ -58,23 +100,57 @@ def validar_campo(campo):
         return True
 	
 def generar_otp():
+	"""Genera un código OTP (One-Time Password) aleatorio de 10 carcateres.
+	EL código incluye letras mayúsculas, minúsculas y números
+
+	Returns:
+		str: Cadena OTP generada aleatoriamente.
+	"""	
 	size = 10
 	otp = ''.join([random.choice( string.ascii_uppercase + string.ascii_lowercase + string.digits ) for n in range(size)])
 
 	return otp
 
 def eliminar_otps_anteriores():
+	""" ELimina todos los registros anteriores del modelo OTP.
+		Esta función se utiliza como limpieza previa antes de guardar un nuevo código OTP
+	"""	
 	OTP.objects.all().delete()
 
 def guardar_otp(code):
+	""" Guarda un nuevo código OTP después de eliminar los anteriores
+
+	Args:
+		code (_type_): EL código OTP que se va a guardar.
+
+	Returns:
+		OTP: Instancia del modelo OTP recien creada.
+	"""	
 	eliminar_otps_anteriores()
 	return OTP.objects.create(code=code)
 
 def validad_caducidad_otp(fecha_creacion):
+	""" Verifica si un código OTP ha caducado.
+		Se considera que el OTP caduca si no ha pasado más de 1 min desde su creación.
+
+	Args:
+		fecha_creacion (_type_): Fecha y hora en la que se creó el OTP.
+
+	Returns:
+		bool: True si el OTP ha caducado, False si aún es válido
+	"""	
 	hora_actual = datetime.now(fecha_creacion.tzinfo)
 	return hora_actual - fecha_creacion > timedelta(minutes=1)
 
 def validar_tamanio_password(passwd):
+	""" Verifica si la contraseña tiene al menos 12 caracteres.
+
+	Args:
+		passwd (_type_): COntraseña a validar. 
+
+	Returns:
+		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario. 
+	"""	
 	tamanio = 12
 	if len(passwd) < tamanio:
 		return True
