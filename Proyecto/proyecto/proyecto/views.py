@@ -1,5 +1,6 @@
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
+from django.conf import settings
 from django.template import Template, Context
 from administrador.models import Administrador
 from administrador.models import OTP
@@ -16,6 +17,16 @@ import bcrypt
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
+
+def recaptcha_verify(recaptcha_response: str) -> bool:
+    data = {
+      "secret": settings.RECAPTCHA_PRIVATE_KEY,
+      "response": recaptcha_response
+    }
+
+    response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+    result = response.json()
+    return result.get('success', False)
 
 def contiene_letra(contrasena):
     return any(caracter.isalpha() for caracter in contrasena)
@@ -101,29 +112,37 @@ def login(request):
 	elif request.method == 'POST':
 		usuario = request.POST.get('usuario','')
 		passwd = request.POST.get('passwd','').encode('utf-8')
-
-		try:
-			admin_bd = Administrador.objects.get(user=usuario)
-			user_bd = admin_bd.user
-			passwd_bd = admin_bd.passwdHash
-
-			if bcrypt.checkpw(passwd, passwd_bd):
-				request.session['logueado'] = True
-				request.session['usuario'] = usuario
-				code = generar_otp()
-				guardar_otp(code)
-				enviar_otp_telegram(code)
-				return redirect('/verificar')
-			else:
-				errores.append("Usuario y/o Contraseña incorrecta")
-				return render(request, 'login.html', {'errores': errores})
-		except Administrador.DoesNotExist:
-			errores.append("Usuario no encontrado")
-		except Exception as e:
-			errores.append(f"Error interno: {str(e)}")
+		captcha_token = request.POST.get('g-recaptcha-response',"").strip()
 		
+#		if not recaptcha_verify(captcha_token):
+#			errores.append("Captcha no autorizado")
+
 		if errores:
-			return render(request, 'login.html', {'errores':errores})
+			return render(request, t , {'errores':errores})
+		else:
+
+			try:
+				admin_bd = Administrador.objects.get(user=usuario)
+				user_bd = admin_bd.user
+				passwd_bd = admin_bd.passwdHash
+
+				if bcrypt.checkpw(passwd, passwd_bd):
+					request.session['logueado'] = True
+					request.session['usuario'] = usuario
+					code = generar_otp()
+					guardar_otp(code)
+					enviar_otp_telegram(code)
+					return redirect('/verificar')
+				else:
+					errores.append("Usuario y/o Contraseña incorrecta")
+					return render(request, 'login.html', {'errores': errores})
+			except Administrador.DoesNotExist:
+				errores.append("Usuario no encontrado")
+			except Exception as e:
+				errores.append(f"Error interno: {str(e)}")
+
+			if errores:
+				return render(request, 'login.html', {'errores':errores})
 
 @decoradores.login_requerido
 @decoradores.token_requerido		
