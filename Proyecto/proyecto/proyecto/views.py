@@ -119,7 +119,8 @@ def eliminar_otps_anteriores():
 	""" ELimina todos los registros anteriores del modelo OTP.
 		Esta función se utiliza como limpieza previa antes de guardar un nuevo código OTP
 	"""	
-	OTP.objects.filter(esta_usado=True).delete()
+	tiempo = timezone.now() - timedelta(minutes=3)
+	OTP.objects.filter(Q(esta_usado=True) | Q(created_at__lt=tiempo)).delete()
 
 def guardar_otp(code):
 	""" Guarda un nuevo código OTP después de eliminar los anteriores
@@ -272,16 +273,15 @@ def verificar_otp_view(request):
 			try:
 				otp = OTP.objects.get(code=otp_input)
 				if validad_caducidad_otp(otp.created_at):
-					errores.append("El codigo de verificación expiro")
+					errores.append("El código de verificación expiro")
 					#otp.esta_usado == True
 				elif otp.esta_usado == False:
 					otp.esta_usado = True
 					otp.save()
 					request.session['autorizado'] = True
-					errores.append("El token ya ha sido usado")
 					return redirect('/panel')
 				else:
-					errores.append("Logueate denuevo en la pagina")
+					errores.append("Código de verificación ya usado o mal pasado")
 					return redirect('/login')
 			except OTP.DoesNotExist:
 				errores.append("Error. Solicite denuevo la pagina")
