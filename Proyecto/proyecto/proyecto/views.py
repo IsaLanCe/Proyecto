@@ -2,6 +2,8 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.template import Template, Context
+from django.utils import timezone
+from django.db.models import Q
 from administrador.models import Administrador
 from administrador.models import OTP
 from datetime import datetime, timedelta
@@ -17,6 +19,10 @@ import bcrypt
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
+tamanio = settings.TAMANIO_PASSWORD
+size = settings.TAMANIO_OTP
+tiempo_caducidad = settings.TIEMPO_CADUCIDAD_OTP
+#tiempo_limite = settings.TIEMPO_REGISTRO
 
 def recaptcha_verify(recaptcha_response: str) -> bool:
 
@@ -65,7 +71,6 @@ def politica_tamanio_contrasena(contrasena):
 	Returns:
 		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario
 	"""	
-	tamanio = 12
 	if len(contrasena) < tamanio:
 		return  True
 	else:
@@ -106,7 +111,6 @@ def generar_otp():
 	Returns:
 		str: Cadena OTP generada aleatoriamente.
 	"""	
-	size = 10
 	otp = ''.join([random.choice( string.ascii_uppercase + string.ascii_lowercase + string.digits ) for n in range(size)])
 
 	return otp
@@ -115,7 +119,7 @@ def eliminar_otps_anteriores():
 	""" ELimina todos los registros anteriores del modelo OTP.
 		Esta función se utiliza como limpieza previa antes de guardar un nuevo código OTP
 	"""	
-	OTP.objects.all().delete()
+	OTP.objects.filter(esta_usado=True).delete()
 
 def guardar_otp(code):
 	""" Guarda un nuevo código OTP después de eliminar los anteriores
@@ -140,7 +144,7 @@ def validad_caducidad_otp(fecha_creacion):
 		bool: True si el OTP ha caducado, False si aún es válido
 	"""	
 	hora_actual = datetime.now(fecha_creacion.tzinfo)
-	return hora_actual - fecha_creacion > timedelta(minutes=1)
+	return hora_actual - fecha_creacion > timedelta(minutes=tiempo_caducidad)
 
 def validar_tamanio_password(passwd):
 	""" Verifica si la contraseña tiene al menos 12 caracteres.
@@ -151,7 +155,6 @@ def validar_tamanio_password(passwd):
 	Returns:
 		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario. 
 	"""	
-	tamanio = 12
 	if len(passwd) < tamanio:
 		return True
 	else:
@@ -177,6 +180,14 @@ def enviar_otp_telegram(code):
 	except requests.RequestException as e:
 		print(f'Error: {e}')
 		return False
+
+def logout(request):
+
+	request.session['logueado'] = False
+	request.session['autorizado'] = False
+	request.session.flush()
+	return redirect('/login')
+   
 
 def login(request):
 	t = "login.html"
@@ -263,10 +274,11 @@ def verificar_otp_view(request):
 				if validad_caducidad_otp(otp.created_at):
 					errores.append("El codigo de verificación expiro")
 					#otp.esta_usado == True
-				elif otp.code == otp_input:
-					#otp.esta_usado = True
-					#otp.save()
+				elif otp.esta_usado == False:
+					otp.esta_usado = True
+					otp.save()
 					request.session['autorizado'] = True
+					errores.append("El token ya ha sido usado")
 					return redirect('/panel')
 				else:
 					errores.append("Logueate denuevo en la pagina")
