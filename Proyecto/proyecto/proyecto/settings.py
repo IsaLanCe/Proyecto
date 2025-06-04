@@ -42,6 +42,10 @@ TAMANIO_OTP = 10
 TIEMPO_CADUCIDAD_OTP = 3
 TIEMPO_REGISTRO = 4
 
+SEGUNDOS_INTENTO = 60
+NUMERO_INTENTOS = 3
+
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

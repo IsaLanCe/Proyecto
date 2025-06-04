@@ -4,8 +4,10 @@ from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
 from django.db.models import Q
+from datetime import timezone
 from administrador.models import Administrador
 from administrador.models import OTP
+from administrador.models import ContadorIntentos
 from datetime import datetime, timedelta
 from proyecto import decoradores
 from . import hasher as hash
@@ -23,6 +25,73 @@ tamanio = settings.TAMANIO_PASSWORD
 size = settings.TAMANIO_OTP
 tiempo_caducidad = settings.TIEMPO_CADUCIDAD_OTP
 #tiempo_limite = settings.TIEMPO_REGISTRO
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def ip_registrada(ip: str) -> bool:
+    """
+    True si la IP ya está en la BD.
+
+    ip
+    returns: bool 
+    """
+    try:
+        ContadorIntentos.objects.get(pk=ip)
+        return True
+    except:
+        return False
+
+def fecha_en_ventana(fecha, segundos_ventana=settings.SEGUNDOS_INTENTO) -> bool:
+    """
+    True si la fecha está en la ventana de tiempo.
+
+    fecha
+    returns: bool 
+    """
+    actual = datetime.now(timezone.utc)
+    diferencia = (actual - fecha).seconds
+    return diferencia <= segundos_ventana
+    
+def tienes_intentos_login(request) -> bool:
+    """
+    Verdadero si puedes seguir intentando loguearte.
+
+    request
+    returns: bool 
+    """
+    ip = get_client_ip(request)
+    if not ip_registrada(ip):
+        registro = ContadorIntentos()
+        registro.ip = ip
+        registro.contador = 1
+        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.save()
+        return True
+
+    registro = ContadorIntentos.objects.get(pk=ip)
+    fecha = registro.ultimo_intento
+    if not fecha_en_ventana(fecha):
+        registro.contador = 1
+        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.save()
+        return True
+
+    if registro.contador < settings.NUMERO_INTENTOS:
+        registro.contador += 1
+        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.save()
+        return True
+
+    registro.ultimo_intento = datetime.now(timezone.utc)
+    registro.save()
+    return False
+
 
 def recaptcha_verify(recaptcha_response: str) -> bool:
 
@@ -204,6 +273,10 @@ def login(request):
 		
 		if not captcha_token or not recaptcha_verify(captcha_token):
 			errores.append("Captcha no autorizado")
+		
+		if not tienes_intentos_login(request):
+			error = 'Debes esperar %s segundo antes de volver a intentar' % settings.SEGUNDOS_INTENTO
+			errores.append(error)
 
 		if errores:
 			return render(request, t , {'errores':errores})

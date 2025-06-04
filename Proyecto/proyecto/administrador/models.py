@@ -14,4 +14,10 @@ class OTP(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	esta_usado = models.BooleanField(default=False)
 
+class ContadorIntentos(models.Model):
+    ip = models.GenericIPAddressField(primary_key=True)
+    contador = models.PositiveIntegerField()
+    ultimo_intento = models.DateTimeField()
+
+
 
