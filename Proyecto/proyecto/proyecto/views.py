@@ -2,9 +2,10 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.template import Template, Context
-from django.utils import timezone
+from django.utils import timezone as dj_timezone
+from datetime import timezone as dt_timezone
+from datetime import datetime
 from django.db.models import Q
-from datetime import timezone
 from administrador.models import Administrador
 from administrador.models import OTP
 from administrador.models import ContadorIntentos
@@ -54,7 +55,7 @@ def fecha_en_ventana(fecha, segundos_ventana=settings.SEGUNDOS_INTENTO) -> bool:
     fecha
     returns: bool 
     """
-    actual = datetime.now(timezone.utc)
+    actual = datetime.now(dt_timezone.utc)
     diferencia = (actual - fecha).seconds
     return diferencia <= segundos_ventana
     
@@ -70,7 +71,7 @@ def tienes_intentos_login(request) -> bool:
         registro = ContadorIntentos()
         registro.ip = ip
         registro.contador = 1
-        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.ultimo_intento = datetime.now(dt_timezone.utc)
         registro.save()
         return True
 
@@ -78,17 +79,17 @@ def tienes_intentos_login(request) -> bool:
     fecha = registro.ultimo_intento
     if not fecha_en_ventana(fecha):
         registro.contador = 1
-        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.ultimo_intento = datetime.now(dt_timezone.utc)
         registro.save()
         return True
 
     if registro.contador < settings.NUMERO_INTENTOS:
         registro.contador += 1
-        registro.ultimo_intento = datetime.now(timezone.utc)
+        registro.ultimo_intento = datetime.now(dt_timezone.utc)
         registro.save()
         return True
 
-    registro.ultimo_intento = datetime.now(timezone.utc)
+    registro.ultimo_intento = datetime.now(dt_timezone.utc)
     registro.save()
     return False
 
@@ -188,7 +189,7 @@ def eliminar_otps_anteriores():
 	""" ELimina todos los registros anteriores del modelo OTP.
 		Esta función se utiliza como limpieza previa antes de guardar un nuevo código OTP
 	"""	
-	tiempo = timezone.now() - timedelta(minutes=3)
+	tiempo = dj_timezone.now() - timedelta(minutes=3)
 	OTP.objects.filter(Q(esta_usado=True) | Q(created_at__lt=tiempo)).delete()
 
 def guardar_otp(code):
