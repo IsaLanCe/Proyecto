@@ -19,6 +19,14 @@ import requests
 import re
 import os
 import bcrypt
+import logging
+
+logging.basicConfig(level=logging.INFO,
+					filename='login.log',
+					filemode='a',
+					format='%(asctime)s - %(levelname)s - %(message)s',
+					datefmt='%d-%b-%y %H:%M:%S')
+
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
@@ -121,7 +129,7 @@ def contiene_numero(contrasena):
 	""" Verifica si la contraseña contiene al menos un número
 
 	Args:
-		contrasena (_type_): COntraseña a verificar
+		contrasena (_type_): Contraseña a verificar
 
 	Returns:
 		bool: True si la contraseña contiene al menos una letra, False si es el caso contrario
@@ -294,9 +302,13 @@ def login(request):
 					code = generar_otp()
 					guardar_otp(code)
 					enviar_otp_telegram(code)
+					mensaje = f"Loggin correcto del usuario {usuario}"
+					logging.info(mensaje)
 					return redirect('/verificar')
 				else:
 					errores.append("Usuario y/o Contraseña incorrecta")
+					mensaje = f"Loggin incorrecto del usuario {usuario}"
+					logging.info(mensaje)
 					return render(request, 'login.html', {'errores': errores})
 			except Administrador.DoesNotExist:
 				errores.append("Usuario no encontrado")
