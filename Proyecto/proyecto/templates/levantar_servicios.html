@@ -17,5 +17,45 @@
 {% endif %}
 
 <h1 style="text-align: center;">Bienvenido a la pagina para instalar Servicios</h1>
+    <form action="/levantarServicios/" method="POST">
+        <div class="mb-3">
+        <label for="domain">Dirección IP o Dominio</label>
+        <input type="text" class="form-control" id="domain" placeholder="Ingresa la IP, Ejemplo:192.168.0.1 o Dominio, Ejemplo: ejemplo.com" name="domain" pattern="[a-zA-Z0-9-.]+" required>
+        <div class="valid-feedback">¡OK!</div>
+        <div class="invalid-feedback">Ingresa una ip o dominio correcto</div>
+        </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="option">Selecciona el servicio que desea instalar: </label>
+            <select name="option" id="option">
+                <option value="apache2">apache2</option>
+                <option value="nginx">nginx</option>
+                <option value="openssh-server">openssh-server</option>
+                <option value="vsftpd">vsftpd</option>
+                <option value="mariadb-server">mariadb</option>
+                <option value="bind9">bind9</option>
+                <option value="ufw">ufw</option>
+
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="user">Nombre del usuario del servidor</label>
+            <input type="text" class="form-control" id="user" placeholder="Ingresa el nombre dle usuario que administra el servidor" name="user" pattern="[a-zA-Z0-9]+" required>
+            <div class="valid-feedback">¡OK!</div>
+            <div class="invalid-feedback">Ingresa un nombre de usuario</div>
+            </div>
+        </div>
+    
+        <div class="mb-3">
+            <label for="pass">Contraseña del usuario del servidor</label>
+            <input type="pass" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
+            <div class="valid-feedback">¡OK!</div>
+            <div class="invalid-feedback">Ingresa la contraseña de usuario del servidor</div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
 
 {% endblock %}
