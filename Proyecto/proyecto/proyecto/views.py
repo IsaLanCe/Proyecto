@@ -8,10 +8,12 @@ from datetime import datetime
 from django.db.models import Q
 from administrador.models import Administrador
 from administrador.models import OTP
+from administrador.models import Servidor
 from administrador.models import ContadorIntentos
 from datetime import datetime, timedelta
 from proyecto import decoradores
 from . import hasher as hash
+import ipaddress
 import random
 import string
 import sys
@@ -101,6 +103,23 @@ def tienes_intentos_login(request) -> bool:
     registro.save()
     return False
 
+def es_dominio_o_ip(cadena):
+    cadena = cadena.strip()
+    # Verifica si es una dirección IP (IPv4 o IPv6)
+    try:
+        ipaddress.ip_address(cadena)
+        return True
+    except ValueError:
+        pass
+
+    # Verifica si es un dominio válido
+    dominio_regex = re.compile(
+        r"^(?=.{1,253}$)(?!\-)([a-zA-Z0-9\-]{1,63}(?<!\-)\.)+[a-zA-Z]{2,63}$"
+    )
+    if dominio_regex.match(cadena):
+        return True
+
+    return False
 
 def recaptcha_verify(recaptcha_response: str) -> bool:
 
@@ -140,11 +159,12 @@ def contiene_caracter_especial_seguro(contrasena):
     caracteres_permitidos = r"_$-"
     return any(c in caracteres_permitidos for c in contrasena)
 
+
 def politica_tamanio_contrasena(contrasena):
 	""" Verifica si la contraseña cumple con la longitud mínima requeridad (12 caracteres)
 
 	Args:
-		contrasena (_type_): COntraseña a valdiar
+		contrasena (_type_): Contraseña a valdiar
 
 	Returns:
 		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario
@@ -329,8 +349,65 @@ def panel(request):
 @decoradores.token_requerido		
 def registrarServidor(request):
 	r = 'registroServidor.html'
+	errores = []
 	if request.method == 'GET':
 		return render(request, r)
+	elif request.method == 'POST':
+		dominio = request.POST.get('domain', '')
+		etiqueta = request.POST.get('server','')
+		usuario = request.POST.get('user','')
+		password = request.POST.get('pass','')
+		password2 = request.POST.get('pass2','')
+
+		#Verificar que los campos no se envien vacios
+		if campo_vacio(dominio):
+			errores.append("El dominio no debe estar vacio")
+		if campo_vacio(etiqueta):
+			errores.append("La descripcion del servidor no debe estar vacia")
+		if campo_vacio(usuario):
+			errores.append("El usuario no debe estar vacio")
+		if campo_vacio(password):
+			errores.append("La contraseña no debe estar vacia")
+		if campo_vacio(password2):
+			errores.append("La validación de contraseña no debe estar vacio")
+		
+		#Verificación del dominio o IP
+		if not es_dominio_o_ip(dominio):
+			errores.append("El dominio o IP no tiene el formato correcto")
+		
+		#Validad el username y contraseña
+		if validar_campo(usuario):
+			errores.append("El nombre de usuario no debe contener caracteres especiales")
+		if validar_campo(password):
+			errores.append("La contraseña no debe tener caracteres especiales")
+		if validar_campo(password2):
+			errores.append("La validación de contraseña no debe tener caracteres especiales")
+		
+		if password != password2:
+			errores.append("Las contraseñas y la validación no coinciden")
+
+		if errores:
+			return render(request, r, {'errores':errores})
+		else:
+			try:
+				password = password.encode('utf-8')
+				salt = bcrypt.gensalt()
+				hash = bcrypt.hashpw(password,salt)
+
+				user = Servidor(
+					dominio = dominio,
+					etiqueta = etiqueta,
+					user = usuario,
+					passwdHash = hash,
+					salt = salt
+				)
+				user.save()
+				mensaje = "Servidor registrado correctamente"
+				return render(request, r, {'mensaje': mensaje})
+			except Exception as e:
+				errores.append(f"Error interno: {str(e)}")	
+				return render (request, r, {'errores': errores})
+
 
 @decoradores.login_requerido
 @decoradores.token_requerido

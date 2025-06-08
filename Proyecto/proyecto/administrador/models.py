@@ -19,5 +19,12 @@ class ContadorIntentos(models.Model):
     contador = models.PositiveIntegerField()
     ultimo_intento = models.DateTimeField()
 
+class Servidor(models.Model):
+	dominio = models.CharField(primary_key=True, max_length=20)
+	etiqueta = models.CharField(max_length=80)
+	user = models.CharField(max_length=20)
+	passwdHash = models.BinaryField(max_length=60, default=b'')
+	salt = models.BinaryField(max_length=29, default=b'')
+
 
 

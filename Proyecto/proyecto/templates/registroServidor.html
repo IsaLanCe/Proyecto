@@ -19,24 +19,29 @@
 </div>
 {% endif %}
 
+{% if mensaje %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    <strong>{{ mensaje }}</strong>
+</div>
+{% endif %}
+
 <form class="was-validated" action="/registrarServidor/" method="POST">
 	 {% csrf_token %}     
    
-     <div class="mb-3 mt-3">
-	<label for="server">Etiqueta del Servidor</label>
-	<input type="text" class="form-control" id="server" placeholder="Ingresa una etiqueta para identificar el servidor" name="server" pattern="[a-zA-Z0-9 _-]+" required>
-    <div class="valid-feedback">¡OK!</div>
-    <div class="invalid-feedback">Debes ingresar un nombre y sin caracteres epsciales</div>
-     </div>
-     </div>
-
-   
     <div class="mb-3">
 	<label for="domain">Dirección IP o Dominio</label>
-	<input type="text" class="form-control" id="domain" placeholder="Ingresa la IP, Ejemplo:192.168.0.1 o Dominio, Ejemplo: ejemplo.com" name="domain" pattern="[a-zA-Z0-9-]+" required>
+	<input type="text" class="form-control" id="domain" placeholder="Ingresa la IP, Ejemplo:192.168.0.1 o Dominio, Ejemplo: ejemplo.com" name="domain" pattern="[a-zA-Z0-9-.]+" required>
     <div class="valid-feedback">¡OK!</div>
     <div class="invalid-feedback">Ingresa una ip o dominio correcto</div>
      </div>
+    </div>
+
+    <div class="mb-3 mt-3">
+    <label for="server">Etiqueta del Servidor</label>
+    <input type="text" class="form-control" id="server" placeholder="Ingresa una etiqueta para identificar el servidor" name="server" pattern="[a-zA-Z0-9 _-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Debes ingresar un nombre y sin caracteres epsciales</div>
+      </div>
     </div>
     
     <div class="mb-3">
@@ -49,7 +54,7 @@
 
     <div class="mb-3">
     <label for="pass">Contraseña del usuario</label>
-    <input type="text" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
+    <input type="password" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
     <div class="valid-feedback">¡OK!</div>
     <div class="invalid-feedback">Ingresa la contraseña del usuario</div>
       </div>
@@ -57,7 +62,7 @@
 
     <div class="mb-3">
     <label for="pass2">Confirmación de contraseña</label>
-    <input type="text" class="form-control" id="pass2" placeholder="Ingresa la confimación de la contraseña" name="pass2" pattern="[a-zA-Z0-9_-]+" required>
+    <input type="password" class="form-control" id="pass2" placeholder="Ingresa la confimación de la contraseña" name="pass2" pattern="[a-zA-Z0-9_-]+" required>
     <div class="valid-feedback">¡OK!</div>
     <div class="invalid-feedback">Ingresa la contraseña del usuario</div>
       </div>
