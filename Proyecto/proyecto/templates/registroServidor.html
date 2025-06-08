@@ -3,7 +3,7 @@
 {% block titulo %}Registro{% endblock %}
 
 {% block scripts %}
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 {% endblock %}
 
 {% block contenido %}
@@ -23,7 +23,7 @@
 	 {% csrf_token %}     
    
      <div class="mb-3 mt-3">
-	<label for="Usuario">Etiqueta del Servidor</label>
+	<label for="server">Etiqueta del Servidor</label>
 	<input type="text" class="form-control" id="server" placeholder="Ingresa una etiqueta para identificar el servidor" name="server" pattern="[a-zA-Z0-9 _-]+" required>
     <div class="valid-feedback">¡OK!</div>
     <div class="invalid-feedback">Debes ingresar un nombre y sin caracteres epsciales</div>
@@ -32,13 +32,37 @@
 
    
     <div class="mb-3">
-	<label for="passwd">Dirección IP</label>
-	<input type="text" class="form-control" id="ip" placeholder="Ingresa la IP, Ejemplo:192.168.0.1" name="ip" pattern="[a-zA-Z0-9 _-]+" required>
+	<label for="domain">Dirección IP o Dominio</label>
+	<input type="text" class="form-control" id="domain" placeholder="Ingresa la IP, Ejemplo:192.168.0.1 o Dominio, Ejemplo: ejemplo.com" name="domain" pattern="[a-zA-Z0-9-]+" required>
     <div class="valid-feedback">¡OK!</div>
-    <div class="invalid-feedback">Solo debes ingresar numeros sin caracteres especiales</div>
+    <div class="invalid-feedback">Ingresa una ip o dominio correcto</div>
      </div>
     </div>
-  
+    
+    <div class="mb-3">
+    <label for="user">Nombre del usuario del servidor</label>
+    <input type="text" class="form-control" id="user" placeholder="Ingresa el nombre dle usuario que administra el servidor" name="user" pattern="[a-zA-Z0-9]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Ingresa un nombre de usuario</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+    <label for="pass">Contraseña del usuario</label>
+    <input type="text" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Ingresa la contraseña del usuario</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+    <label for="pass2">Confirmación de contraseña</label>
+    <input type="text" class="form-control" id="pass2" placeholder="Ingresa la confimación de la contraseña" name="pass2" pattern="[a-zA-Z0-9_-]+" required>
+    <div class="valid-feedback">¡OK!</div>
+    <div class="invalid-feedback">Ingresa la contraseña del usuario</div>
+      </div>
+    </div>
+
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
 
