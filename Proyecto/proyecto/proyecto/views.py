@@ -9,10 +9,12 @@ from django.db.models import Q
 from administrador.models import Administrador
 from administrador.models import OTP
 from administrador.models import Servidor
+from administrador.models import Servicio
 from administrador.models import ContadorIntentos
 from datetime import datetime, timedelta
 from proyecto import decoradores
 from . import hasher as hash
+import paramiko
 import ipaddress
 import random
 import string
@@ -29,6 +31,9 @@ logging.basicConfig(level=logging.INFO,
 					format='%(asctime)s - %(levelname)s - %(message)s',
 					datefmt='%d-%b-%y %H:%M:%S')
 
+class Servidor_No_Registrado(Exception):
+    def __init__(self, *args) -> None:
+        super().__init__(*args)
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
@@ -102,6 +107,9 @@ def tienes_intentos_login(request) -> bool:
     registro.ultimo_intento = datetime.now(dt_timezone.utc)
     registro.save()
     return False
+
+def servicio_no_registrado(nombre_servicio):
+	return not Servicio.objects.filter(nombre_completo=nombre_servicio).exists()
 
 def es_dominio_o_ip(cadena):
     cadena = cadena.strip()
@@ -539,6 +547,56 @@ def registrar_usuario(request):
 @decoradores.login_requerido
 @decoradores.token_requerido
 def levantar_servicios(request):
-	l = 'levantar_servicios.html'
-	return render (request, l)
-	
+    template = 'levantar_servicios.html'
+    errores = []
+
+    if request.method == 'GET':
+        return render(request, template)
+    elif request.method == 'POST':
+        dominio = request.POST.get('domain')
+        servicio = request.POST.get('servicio')
+        usuario = request.POST.get('user')
+        password = request.POST.get('pass')
+
+        try:
+            objetivo = Servidor.objects.get(dominio=dominio)
+
+            usuarioServidor = objetivo.user
+            passwdHash = objetivo.passwdHash  
+        except Servidor.DoesNotExist:
+            errores.append("El servidor no se encuentra registrado en la base de datos")
+            return render(request, template, {'errores': errores})
+
+        if usuarioServidor != usuario or not bcrypt.checkpw(password.encode(), passwdHash):
+            errores.append("El usuario o la contraseña del servidor no son correctos")
+            return render(request, template, {'errores': errores})
+
+        try:
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
+            comando = 	f"echo {password} sudo -S apt install -y {servicio}"
+            stdin, stdout, stderr = ssh.exec_command(comando)
+
+            salida = stdout.read().decode()
+            error = stderr.read().decode()
+            ssh.close()
+
+			  # Verificar si hubo error durante la instalación
+            if error and "E: " in error:
+                errores.append(f"Ocurrió un error al instalar el servicio:\n{error}")
+            elif servicio_no_registrado(servicio):
+                try:
+                    nuevo_servicio = Servicio(nombre_completo=servicio)
+                    nuevo_servicio.save()
+                except Exception as e:
+                    errores.append("Error al guardar el registro")
+
+        except Exception as e:
+            errores.append(f"Error al establecer conexión con el servidor: {str(e)}")
+
+        if errores:
+           return render(request, template, {'errores': errores})
+        else:
+            mensaje = "Exito en el proceso"
+            return render(request, template, {'mensaje': mensaje})

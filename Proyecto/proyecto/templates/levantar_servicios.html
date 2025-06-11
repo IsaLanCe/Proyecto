@@ -16,8 +16,17 @@
 </div>
 {% endif %}
 
+{% if mensaje %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    
+    <strong>{{ mensaje }}</strong>
+   
+</div>
+{% endif %}
+
 <h1 style="text-align: center;">Bienvenido a la pagina para instalar Servicios</h1>
-    <form action="/levantarServicios/" method="POST">
+    <form class="was-validated" action="/levantarServicios/" method="POST">
+        {% csrf_token %}
         <div class="mb-3">
         <label for="domain">Dirección IP o Dominio</label>
         <input type="text" class="form-control" id="domain" placeholder="Ingresa la IP, Ejemplo:192.168.0.1 o Dominio, Ejemplo: ejemplo.com" name="domain" pattern="[a-zA-Z0-9-.]+" required>
@@ -27,17 +36,10 @@
         </div>
 
         <div class="mb-3">
-            <label for="option">Selecciona el servicio que desea instalar: </label>
-            <select name="option" id="option">
-                <option value="apache2">apache2</option>
-                <option value="nginx">nginx</option>
-                <option value="openssh-server">openssh-server</option>
-                <option value="vsftpd">vsftpd</option>
-                <option value="mariadb-server">mariadb</option>
-                <option value="bind9">bind9</option>
-                <option value="ufw">ufw</option>
-
-            </select>
+            <label for="servicio">Servicio a instalar</label>
+            <input type="text" class="form-control" id="servicio" placeholder="Ingresa el servicio que quieres instalar" name="servicio" pattern="[a-zA-Z0-9 -.]+" required>
+            <div class="valid-feedback">¡OK!</div>
+            <div class="invalid-feedback">Ingresa un servicio existente</div>
         </div>
 
         <div class="mb-3">
@@ -50,7 +52,7 @@
     
         <div class="mb-3">
             <label for="pass">Contraseña del usuario del servidor</label>
-            <input type="pass" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
+            <input type="password" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
             <div class="valid-feedback">¡OK!</div>
             <div class="invalid-feedback">Ingresa la contraseña de usuario del servidor</div>
             </div>
