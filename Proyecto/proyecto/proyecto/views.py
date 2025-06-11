@@ -575,7 +575,7 @@ def levantar_servicios(request):
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
-            comando = 	f"echo {password} sudo -S apt install -y {servicio}"
+            comando = 	f"echo {password} | sudo -S apt install -y {servicio}"
             stdin, stdout, stderr = ssh.exec_command(comando)
 
             salida = stdout.read().decode()

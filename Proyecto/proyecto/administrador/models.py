@@ -26,5 +26,8 @@ class Servidor(models.Model):
 	passwdHash = models.BinaryField(max_length=60, default=b'')
 	salt = models.BinaryField(max_length=29, default=b'')
 
+class Servicio(models.Model):
+    nombre_completo = models.CharField(max_length=40, unique=True)
+    fecha_instalacion = models.DateTimeField(auto_now_add=True)
 
 
