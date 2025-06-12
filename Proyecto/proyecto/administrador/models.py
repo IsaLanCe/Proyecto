@@ -30,4 +30,9 @@ class Servicio(models.Model):
     nombre_completo = models.CharField(max_length=40, unique=True)
     fecha_instalacion = models.DateTimeField(auto_now_add=True)
 
+class InstalacionServicio(models.Model):
+    servidor = models.ForeignKey(Servidor, on_delete=models.CASCADE, to_field='dominio')
+    servicio = models.ForeignKey(Servicio, on_delete=models.CASCADE)
 
+    class Meta:
+        unique_together = ('servidor', 'servicio')

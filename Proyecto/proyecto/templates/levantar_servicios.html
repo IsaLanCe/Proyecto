@@ -4,6 +4,7 @@
 
 
 {% block contenido %}
+<h1 style="text-align: center;">Bienvenido a la pagina para instalar Servicios</h1>
 {% if errores %}
 <div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
     
@@ -24,7 +25,6 @@
 </div>
 {% endif %}
 
-<h1 style="text-align: center;">Bienvenido a la pagina para instalar Servicios</h1>
     <form class="was-validated" action="/levantarServicios/" method="POST">
         {% csrf_token %}
         <div class="mb-3">

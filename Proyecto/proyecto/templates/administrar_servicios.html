@@ -4,6 +4,16 @@
 
 
 {% block contenido %}
+<h1 style="text-align: center;">Bienvenido a la seccion que permite Iniciar, Detener o Reiniciar Servicios</h1>
+
+{% if mensaje %}
+<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
+    
+    <strong>{{ mensaje }}</strong>
+    
+</div>
+{% endif %}
+
 {% if errores %}
 <div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
     
@@ -16,6 +26,48 @@
 </div>
 {% endif %}
 
-<h1 style="text-align: center;">Bienvenido a la seccion que permite Iniciar, Detener o Reiniciar Servicios</h1>
+<form class="was-validated" action="/administrarServicios/" method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="domain">Dirección IP o Dominio</label>
+        <input type="text" class="form-control" id="domain" placeholder="Ingresa la IP o Dominio" name="domain" pattern="[a-zA-Z0-9-.]+" required>
+        <div class="valid-feedback">¡OK!</div>
+        <div class="invalid-feedback">Ingresa una ip o dominio correcto</div>
+    </div>
+    </div>
 
+    <div class="mb-3">
+        <label for="servicio">Servicio</label>
+        <input type="text" class="form-control" id="servicio" placeholder="Ingresa el servicio que quieres instalar" name="servicio" pattern="[a-zA-Z0-9 -.]+" required>
+        <div class="valid-feedback">¡OK!</div>
+        <div class="invalid-feedback">Ingresa un servicio existente</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="accion">Accion sobre el servicio:</label>
+        <select id="accion" name="accion" required>
+            <option value="start">Iniciar</option>
+            <option value="restart">Reiniciar</option>
+            <option value="stop">Detener</option>
+        </select>
+
+    </div>
+
+    <div class="mb-3">
+        <label for="user">Nombre del usuario del servidor</label>
+        <input type="text" class="form-control" id="user" placeholder="Ingresa el nombre dle usuario que administra el servidor" name="user" pattern="[a-zA-Z0-9]+" required>
+        <div class="valid-feedback">¡OK!</div>
+        <div class="invalid-feedback">Ingresa un nombre de usuario</div>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="pass">Contraseña del usuario del servidor</label>
+        <input type="password" class="form-control" id="pass" placeholder="Ingresa la contraseña del usuario que administra el servidor" name="pass" pattern="[a-zA-Z0-9_-]+" required>
+        <div class="valid-feedback">¡OK!</div>
+        <div class="invalid-feedback">Ingresa la contraseña de usuario del servidor</div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
 {% endblock %}

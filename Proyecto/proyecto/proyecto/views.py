@@ -11,6 +11,7 @@ from administrador.models import OTP
 from administrador.models import Servidor
 from administrador.models import Servicio
 from administrador.models import ContadorIntentos
+from administrador.models import InstalacionServicio
 from datetime import datetime, timedelta
 from proyecto import decoradores
 from . import hasher as hash
@@ -49,6 +50,14 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+def instalacion_no_registrada(servidor, servicio):
+    """
+    Retorna True si la combinación servidor-servicio NO está registrada.
+    Retorna False si YA existe en la tabla InstalacionServicio.
+    """
+    return not InstalacionServicio.objects.filter(servidor=servidor, servicio=servicio).exists()
+
 
 def ip_registrada(ip: str) -> bool:
     """
@@ -110,6 +119,14 @@ def tienes_intentos_login(request) -> bool:
 
 def servicio_no_registrado(nombre_servicio):
 	return not Servicio.objects.filter(nombre_completo=nombre_servicio).exists()
+
+def servicio_instalado_en_servidor(dominio, servicio):
+	try:
+		servidor = Servidor.objects.get(dominio=dominio)
+		servicio = Servicio.objects.get(nombre_completo=servicio)
+	except (Servidor.DoesNotExist, Servicio.DoesNotExist):
+		return False
+	return InstalacionServicio.objects.filter(servidor=servidor, servicio=servicio).exists()
 
 def es_dominio_o_ip(cadena):
     cadena = cadena.strip()
@@ -420,9 +437,51 @@ def registrarServidor(request):
 @decoradores.login_requerido
 @decoradores.token_requerido
 def administrar_servicios(request):
-	a = 'administrar_servicios.html'
-	return render(request, a)
+	template = 'administrar_servicios.html'
+	errores = []
 
+	if request.method == 'GET':
+		return render (request, template)
+	elif request.method == 'POST':
+		dominio = request.POST.get('domain')
+		servicio = request.POST.get('servicio')
+		accion = request.POST.get('accion')
+		usuario = request.POST.get('user')
+		password = request.POST.get('pass')
+
+		try:
+			servidor_obj = Servidor.objects.get(dominio=dominio)
+		except Servidor.DoesNotExist:
+			errores.append("El servidor no se encuentra registrado en la base de datos")
+			return render(request, template, {'errores': errores})
+		
+		if servidor_obj.user != usuario or not bcrypt.checkpw(password.encode(), servidor_obj.passwdHash):
+			errores.append("El usuario o la contraseña del servidor no son correctas")
+			return render (request, template, {'errores': errores})
+		
+		if servicio_instalado_en_servidor(dominio, servicio):
+			try:
+				ssh = paramiko.SSHClient()
+				ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+				ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
+
+				comando = f"echo {password} | sudo -S systemctl {accion} {servicio}"
+				stdin, stdout, stderr = ssh.exec_command(comando)
+
+				salida = stdout.read().decode()
+				error = stderr.read().decode()
+				ssh.close()
+			except Exception as e:
+				errores.append("Error al establecer conexion con el servidor")
+		else:
+			errores.append("El servicio no esta instalado en el servidor")
+
+		if errores:
+			return render(request, template, {'errores': errores})
+		else:
+			mensaje = f"Exito de {accion} en el servicio {servicio}"
+			return render(request, template, {'mensaje': mensaje})
+    
 
 @decoradores.login_requerido
 def verificar_otp_view(request):
@@ -583,8 +642,8 @@ def levantar_servicios(request):
             ssh.close()
 
 			  # Verificar si hubo error durante la instalación
-            if error and "E: " in error:
-                errores.append(f"Ocurrió un error al instalar el servicio:\n{error}")
+            if error and "Error:" in error:
+                errores.append("Servicio no encontrado")
             elif servicio_no_registrado(servicio):
                 try:
                     nuevo_servicio = Servicio(nombre_completo=servicio)
@@ -594,6 +653,17 @@ def levantar_servicios(request):
 
         except Exception as e:
             errores.append(f"Error al establecer conexión con el servidor: {str(e)}")
+
+        try:
+            servicio_obj = Servicio.objects.get(nombre_completo=servicio)
+            servicio_id = servicio_obj.id
+        except Servicio.DoesNotExist:
+           errores.append("El servicio especificado no está registrado en la base de datos")
+
+        if instalacion_no_registrada(objetivo.dominio, servicio_id):
+           InstalacionServicio.objects.create(servidor=objetivo, servicio=servicio_obj)
+        else:
+           errores.append("El servicio ya se encuentra registrado en ese servidor")
 
         if errores:
            return render(request, template, {'errores': errores})
