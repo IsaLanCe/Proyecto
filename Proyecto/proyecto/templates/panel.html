@@ -2,6 +2,29 @@
 
 {% block titulo %}DashBoard{% endblock %}
 
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 30px;
+        background-color: #f8f9fa;
+    }
+    .servidor {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    }
+    .servidor h3 {
+        margin: 0 0 10px;
+        color: #343a40;
+    }
+    .servidor ul {
+        padding-left: 20px;
+    }
+</style>
+
 
 {% block contenido %}
 {% if errores %}
@@ -17,5 +40,26 @@
 {% endif %}
 
 <h1 style="text-align: center;">Bienvenido al DashBoard de los servicios</h1>
+
+{% if servidores %}
+    {% for servidor in servidores %}
+        <div class="servidor">
+            <h3>Servidor: {{ servidor.dominio }}</h3>
+            {% with instalaciones=servidor.instalacionservicio_set.all %}
+                {% if instalaciones %}
+                    <ul>
+                        {% for instalacion in instalaciones %}
+                            <li>{{ instalacion.servicio.nombre_completo }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No hay servicios instalados</p>
+                {% endif %}
+            {% endwith %}
+        </div>
+    {% empty %}
+        <p>No hay servidores registrados</p>
+    {% endfor %}
+{% endif %}
 
 {% endblock %}

@@ -367,9 +367,20 @@ def login(request):
 @decoradores.token_requerido		
 def panel(request):
 	p = 'panel.html'
+	errores = []
 	if request.method == 'GET':
-		return render(request,'panel.html')
+		try:
+			servidores = Servidor.objects.all().prefetch_related('instalacionservicio_set__servicio')
+		except Exception as e:
+			errores.append("Error al leer la base de datos")
 
+		if errores:
+			return render(request, p, {'errores': errores})
+		else:
+			return render(request, p, {'servidores': servidores})
+	elif request.method == 'POST':
+		return render(request, p)
+	
 @decoradores.login_requerido
 @decoradores.token_requerido		
 def registrarServidor(request):
