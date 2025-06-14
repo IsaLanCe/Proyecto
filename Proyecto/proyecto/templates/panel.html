@@ -2,64 +2,116 @@
 
 {% block titulo %}DashBoard{% endblock %}
 
+{% block contenido %}
 <style>
     body {
+        background-color: #191717;
+        color: #797373;
         font-family: Arial, sans-serif;
         padding: 30px;
-        background-color: #f8f9fa;
     }
-    .servidor {
-        background-color: #fff;
-        border: 1px solid #ddd;
+
+    .grid-servidores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: flex-start;
+    }
+
+    .tabla-servidor {
+        background-color: #1f1f1f;
+        border: 1px solid #3700b3;
         border-radius: 10px;
-        padding: 20px;
+        padding: 10px;
+        width: calc(25% - 20px); /* 4 por fila */
+        min-width: 220px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    .tabla-servidor h3 {
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 16px;
+        color: #bb86fc;
+    }
+
+    .tabla-servidor table {
+        width: 100%;
+        border-collapse: collapse;
+        color: #797373;
+    }
+
+    .tabla-servidor th,
+    .tabla-servidor td {
+        padding: 5px;
+        text-align: left;
+        font-size: 14px;
+        border-bottom: 1px solid #3700b3;
+    }
+
+    .tabla-servidor th {
+        color: #bb86fc;
+    }
+
+    .alert {
+        background-color: #2c2c2c;
+        color: #bb86fc;
+        border-left: 4px solid #3700b3;
+        padding: 15px;
         margin-bottom: 20px;
-        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
     }
-    .servidor h3 {
-        margin: 0 0 10px;
-        color: #343a40;
+
+    a {
+        color: #4b4a4d;
+        text-decoration: none;
     }
-    .servidor ul {
-        padding-left: 20px;
+
+    a:hover {
+        color: #ffffff;
+        text-decoration: underline;
     }
 </style>
 
+<h1 style="text-align: center;" class="text-primary-custom">Dashboard de Servicios por Servidor</h1>
 
-{% block contenido %}
 {% if errores %}
-<div id="errores" class="alert bg-secondary text-dark alert-dismissible text-white">
-    
-    <strong>Errores:</strong>
-    <ul id="lista-errores">
-	{% for error in errores %}
-	<li>{{ error }}</li>
-	{% endfor %}
-    </ul>
-</div>
+    <div class="alert">
+        <strong>Errores:</strong>
+        <ul>
+            {% for error in errores %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
 {% endif %}
 
-<h1 style="text-align: center;">Bienvenido al DashBoard de los servicios</h1>
-
-{% if servidores %}
+<div class="grid-servidores">
     {% for servidor in servidores %}
-        <div class="servidor">
-            <h3>Servidor: {{ servidor.dominio }}</h3>
+        <div class="tabla-servidor">
+            <h3>{{ servidor.dominio }}</h3>
             {% with instalaciones=servidor.instalacionservicio_set.all %}
                 {% if instalaciones %}
-                    <ul>
-                        {% for instalacion in instalaciones %}
-                            <li>{{ instalacion.servicio.nombre_completo }}</li>
-                        {% endfor %}
-                    </ul>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Servicio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for instalacion in instalaciones %}
+                                <tr>
+                                    <td>{{ instalacion.servicio.nombre_completo }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 {% else %}
                     <p>No hay servicios instalados</p>
                 {% endif %}
             {% endwith %}
         </div>
-    {% empty %}
-        <p>No hay servidores registrados</p>
     {% endfor %}
-{% endif %}
-
+</div>
 {% endblock %}
+
+
