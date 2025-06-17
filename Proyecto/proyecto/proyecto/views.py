@@ -14,8 +14,8 @@ from administrador.models import ContadorIntentos
 from administrador.models import InstalacionServicio
 from datetime import datetime, timedelta
 from proyecto import decoradores
-from . import hasher as hash
 import paramiko
+import secrets
 import ipaddress
 import random
 import string
@@ -26,6 +26,12 @@ import os
 import bcrypt
 import logging
 
+
+"""Configuración de bitacoras de nivel INFO
+
+	Returns:
+		_none_
+	"""
 logging.basicConfig(level=logging.INFO,
 					filename='login.log',
 					filemode='a',
@@ -41,9 +47,17 @@ chat = os.environ.get('CHAT_ID')
 tamanio = settings.TAMANIO_PASSWORD
 size = settings.TAMANIO_OTP
 tiempo_caducidad = settings.TIEMPO_CADUCIDAD_OTP
-#tiempo_limite = settings.TIEMPO_REGISTRO
 
 def get_client_ip(request):
+    """_Funcion que recupera la solicitud hecha y regresa la direccion IP de origen_
+
+	Args:
+		request (_request_): _Recupera la solicitud_
+
+	Returns:
+		_ip_: _Regresa la direccion IP desde donde se hace la solicitud_
+	"""
+
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0]
@@ -118,9 +132,26 @@ def tienes_intentos_login(request) -> bool:
     return False
 
 def servicio_no_registrado(nombre_servicio):
+	"""_Funcion que verifica si el servicio que se quiere instalar no se encuentra registrado en la base de datos_
+
+	Args:
+		nombre_servicio (_str_): _Nombre del servicio que se quiere verificar_
+
+	Returns:
+		_Bool_: _Regresa Falso si el servicio si esta registrado y True si el servicio si esta registrado_
+	"""
 	return not Servicio.objects.filter(nombre_completo=nombre_servicio).exists()
 
 def servicio_instalado_en_servidor(dominio, servicio):
+	"""_Verifica si cierto servicio esta instalado en tal servidor_
+
+	Args:
+		dominio (_str_): _Dominio o IP del servidor donde se verificara_
+		servicio (_str_): _Servicio que se va a verificar_
+
+	Returns:
+		_bool_: _Regresa True si el servicio ya esta instalado en ese servidor y False si el servicio no esta instalado en ese servidor_
+	"""
 	try:
 		servidor = Servidor.objects.get(dominio=dominio)
 		servicio = Servicio.objects.get(nombre_completo=servicio)
@@ -147,7 +178,14 @@ def es_dominio_o_ip(cadena):
     return False
 
 def recaptcha_verify(recaptcha_response: str) -> bool:
+    """_Funcion que verifica si se ha pasado el Recaptcha en el login de usuario_
 
+	Args:
+		recaptcha_response (str): _Respuesta que se envia al resolver el Recaptcha_
+
+	Returns:
+		bool: _Regresa True si el Recpatcha se ha pasado correctamente y regresa False si no se hizo_
+	"""
     data = {
       "secret": settings.RECAPTCHA_PRIVATE_KEY,
       "response": recaptcha_response
@@ -162,7 +200,7 @@ def contiene_letra(contrasena):
 	"""Verifica si la contraseña contiene al menos una letra
 
 	Args:
-		contrasena (_type_): Contraseña  a verificar
+		contrasena (_str_): Contraseña  a verificar
 
 	Returns:
 		bool: True si la contraseña contiene al menos una letra, False si es el caso contrario
@@ -173,7 +211,7 @@ def contiene_numero(contrasena):
 	""" Verifica si la contraseña contiene al menos un número
 
 	Args:
-		contrasena (_type_): Contraseña a verificar
+		contrasena (_str_): Contraseña a verificar
 
 	Returns:
 		bool: True si la contraseña contiene al menos una letra, False si es el caso contrario
@@ -181,6 +219,14 @@ def contiene_numero(contrasena):
 	return any(c.isdigit() for c in contrasena)
 
 def contiene_caracter_especial_seguro(contrasena):
+    """_Funcion que verifica si la contraseña hace match con algun digito de la expresion regular_
+
+	Args:
+		contrasena (_str_): _Contraseña que se verificara_
+
+	Returns:
+		_bool_: _Regresa True si hay algun caracter especial en la contraseña y False si no hay ningun caracter especial en la contraseña_
+	"""
     caracteres_permitidos = r"_$-"
     return any(c in caracteres_permitidos for c in contrasena)
 
@@ -189,7 +235,7 @@ def politica_tamanio_contrasena(contrasena):
 	""" Verifica si la contraseña cumple con la longitud mínima requeridad (12 caracteres)
 
 	Args:
-		contrasena (_type_): Contraseña a valdiar
+		contrasena (_str_): Contraseña a valdiar
 
 	Returns:
 		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario
@@ -203,7 +249,7 @@ def tiene_mayuscula(contrasena):
 	""" Verifica si la contraseña contiene al menos una letra mayúscula
 
 	Args:
-		contrasena (_type_): COntraseñ a averificar
+		contrasena (_str_): COntraseñ a averificar
 
 	Returns:
 		bool: True si la contraseña tiene al menos una letra mayúscula. False en caso contrario
@@ -214,7 +260,7 @@ def campo_vacio(campo):
 	""" Verifica si un campo de texto está vacío o solo contiene espacios en blanco
 
 	Args:
-		campo (_type_): cadena a validar
+		campo (_str_): cadena a validar
 
 	Returns:
 		bool: True si el cmapo está vacío o solo contiene espacios. False en caso contrario
@@ -222,6 +268,14 @@ def campo_vacio(campo):
 	return campo.strip() == ''
 
 def validar_campo(campo):
+    """_Funcion que valida si un campo contiene digitos especiales_
+
+	Args:
+		campo (_str_): _Cadena que se envia para ser validada_
+
+	Returns:
+		_bool_: _Regresa True si la cadena no hace match con ningun caracter especial y false si hace con algun caracter_
+	"""
     if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
         return False
     else:
@@ -233,8 +287,10 @@ def generar_otp():
 
 	Returns:
 		str: Cadena OTP generada aleatoriamente.
-	"""	
-	otp = ''.join([random.choice( string.ascii_uppercase + string.ascii_lowercase + string.digits ) for n in range(size)])
+	"""
+	caracteres = string.ascii_letters + string.digits
+
+	otp = ''.join(secrets.choice(caracteres) for _ in range(size))
 
 	return otp
 
@@ -242,14 +298,14 @@ def eliminar_otps_anteriores():
 	""" ELimina todos los registros anteriores del modelo OTP.
 		Esta función se utiliza como limpieza previa antes de guardar un nuevo código OTP
 	"""	
-	tiempo = dj_timezone.now() - timedelta(minutes=3)
+	tiempo = dj_timezone.now() - timedelta(minutes=tiempo_caducidad)
 	OTP.objects.filter(Q(esta_usado=True) | Q(created_at__lt=tiempo)).delete()
 
 def guardar_otp(code):
 	""" Guarda un nuevo código OTP después de eliminar los anteriores
 
 	Args:
-		code (_type_): EL código OTP que se va a guardar.
+		code (_str_): EL código OTP que se va a guardar.
 
 	Returns:
 		OTP: Instancia del modelo OTP recien creada.
@@ -262,7 +318,7 @@ def validad_caducidad_otp(fecha_creacion):
 		Se considera que el OTP caduca si no ha pasado más de 1 min desde su creación.
 
 	Args:
-		fecha_creacion (_type_): Fecha y hora en la que se creó el OTP.
+		fecha_creacion (_date_): Fecha y hora en la que se creó el OTP.
 
 	Returns:
 		bool: True si el OTP ha caducado, False si aún es válido
@@ -274,7 +330,7 @@ def validar_tamanio_password(passwd):
 	""" Verifica si la contraseña tiene al menos 12 caracteres.
 
 	Args:
-		passwd (_type_): COntraseña a validar. 
+		passwd (_str_): COntraseña a validar. 
 
 	Returns:
 		bool: True si la contraseña tiene menos de 12 caracteres. False en caso contrario. 
@@ -285,7 +341,14 @@ def validar_tamanio_password(passwd):
 		return False
 
 def enviar_otp_telegram(code):
-	
+	"""_Funcion que envia un codigo OTP por telegram que es generado aleatoriamente y almacenado en la base de datos_
+
+	Args:
+		code (_str_): _Codigo OTP que se enviara por telegram_
+
+	Returns:
+		_bool_: _Regresa True si todo salio exitoso y False si hubo algun error_
+	"""
 	token = to
 	chat_id = chat
 	url = f'https://api.telegram.org/bot{token}/sendMessage'
@@ -306,7 +369,14 @@ def enviar_otp_telegram(code):
 		return False
 
 def logout(request):
+	"""_Funcion que elimina la sesion actual_
 
+	Args:
+		request (_request_): _Peticion actual_
+
+	Returns:
+		_redirect_: _Redigire a otra pestaña_
+	"""
 	request.session['logueado'] = False
 	request.session['autorizado'] = False
 	request.session.flush()
@@ -324,6 +394,9 @@ def login(request):
 		usuario = request.POST.get('usuario','')
 		passwd = request.POST.get('passwd','').encode('utf-8')
 		captcha_token = request.POST.get('g-recaptcha-response', '').strip()
+		
+		if validar_campo(usuario):
+			errores.append("El nombre de usuario no debe contener caracteres especiales")
 		
 		if not captcha_token or not recaptcha_verify(captcha_token):
 			errores.append("Captcha no autorizado")
@@ -412,6 +485,8 @@ def registrarServidor(request):
 			errores.append("El dominio o IP no tiene el formato correcto")
 		
 		#Validad el username y contraseña
+		if validar_campo(etiqueta):
+			errores.append("La descripcion del servidor no debe contener caracteres especiales")
 		if validar_campo(usuario):
 			errores.append("El nombre de usuario no debe contener caracteres especiales")
 		if validar_campo(password):
@@ -439,9 +514,13 @@ def registrarServidor(request):
 				)
 				user.save()
 				mensaje = "Servidor registrado correctamente"
+				from datetime import datetime
+				fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+				mensajeLog = f"---Servidor registrado por el usuario {usuario}: {fecha}"
+				logging.info(mensajeLog)
 				return render(request, r, {'mensaje': mensaje})
 			except Exception as e:
-				errores.append(f"Error interno: {str(e)}")	
+				errores.append("Error de conexion")	
 				return render (request, r, {'errores': errores})
 
 
@@ -477,9 +556,8 @@ def administrar_servicios(request):
 				ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
 
 				comando = f"echo {password} | sudo -S systemctl {accion} {servicio}"
-				stdin, stdout, stderr = ssh.exec_command(comando)
+				_, stdout, stderr = ssh.exec_command(comando)
 
-				salida = stdout.read().decode()
 				error = stderr.read().decode()
 				ssh.close()
 			except Exception as e:
@@ -491,6 +569,9 @@ def administrar_servicios(request):
 			return render(request, template, {'errores': errores})
 		else:
 			mensaje = f"Exito de {accion} en el servicio {servicio}"
+			fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+			mensajeLog = f"+++Servicio {servicio} {accion} por el usuario {usuario}: {fecha}"
+			logging.info(mensajeLog)
 			return render(request, template, {'mensaje': mensaje})
     
 
@@ -515,7 +596,6 @@ def verificar_otp_view(request):
 				otp = OTP.objects.get(code=otp_input)
 				if validad_caducidad_otp(otp.created_at):
 					errores.append("El código de verificación expiro")
-					#otp.esta_usado == True
 				elif otp.esta_usado == False:
 					otp.esta_usado = True
 					otp.save()
@@ -679,5 +759,8 @@ def levantar_servicios(request):
         if errores:
            return render(request, template, {'errores': errores})
         else:
+            fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
+            mensajeLog = f"***Servicio {servicio} instalado correctamente en servidor {dominio} por el usuario {usuario}: {fecha}"
+            logging.info(mensajeLog)
             mensaje = "Exito en el proceso"
             return render(request, template, {'mensaje': mensaje})
