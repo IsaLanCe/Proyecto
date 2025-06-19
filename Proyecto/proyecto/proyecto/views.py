@@ -47,6 +47,7 @@ chat = os.environ.get('CHAT_ID')
 tamanio = settings.TAMANIO_PASSWORD
 size = settings.TAMANIO_OTP
 tiempo_caducidad = settings.TIEMPO_CADUCIDAD_OTP
+llave = settings.KEYPRIVATE
 
 def get_client_ip(request):
     """_Funcion que recupera la solicitud hecha y regresa la direccion IP de origen_
@@ -495,7 +496,7 @@ def registrarServidor(request):
 			errores.append("La validación de contraseña no debe tener caracteres especiales")
 		
 		if password != password2:
-			errores.append("Las contraseñas y la validación no coinciden")
+			errores.append("Las contraseñas no coinciden")
 
 		if errores:
 			return render(request, r, {'errores':errores})
@@ -536,7 +537,6 @@ def administrar_servicios(request):
 		dominio = request.POST.get('domain')
 		servicio = request.POST.get('servicio')
 		accion = request.POST.get('accion')
-		usuario = request.POST.get('user')
 		password = request.POST.get('pass')
 
 		try:
@@ -545,32 +545,36 @@ def administrar_servicios(request):
 			errores.append("El servidor no se encuentra registrado en la base de datos")
 			return render(request, template, {'errores': errores})
 		
-		if servidor_obj.user != usuario or not bcrypt.checkpw(password.encode(), servidor_obj.passwdHash):
-			errores.append("El usuario o la contraseña del servidor no son correctas")
+		if not bcrypt.checkpw(password.encode(), servidor_obj.passwdHash):
+			errores.append("La contraseña del servidor no son correctas")
 			return render (request, template, {'errores': errores})
 		
-		if servicio_instalado_en_servidor(dominio, servicio):
+		if not errores:
 			try:
-				ssh = paramiko.SSHClient()
-				ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-				ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
+				user_server = servidor_obj.user
 
-				comando = f"echo {password} | sudo -S systemctl {accion} {servicio}"
-				_, stdout, stderr = ssh.exec_command(comando)
+				key = paramiko.RSAKey.from_private_key_file(llave)
+
+				ssh = paramiko.SSHClient()
+
+				ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+				ssh.connect(hostname=dominio, username=user_server, pkey=key)
+
+				comando = f"sudo systemctl {accion} {servicio}"
+				stdin, stdout, stderr = ssh.exec_command(comando)
 
 				error = stderr.read().decode()
+				salida = stdout.read().decode()
 				ssh.close()
 			except Exception as e:
 				errores.append("Error al establecer conexion con el servidor")
-		else:
-			errores.append("El servicio no esta instalado en el servidor")
 
 		if errores:
 			return render(request, template, {'errores': errores})
 		else:
 			mensaje = f"Exito de {accion} en el servicio {servicio}"
 			fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-			mensajeLog = f"+++Servicio {servicio} {accion} por el usuario {usuario}: {fecha}"
+			mensajeLog = f"+++Servicio {servicio} {accion} por el usuario {user_server}: {fecha}"
 			logging.info(mensajeLog)
 			return render(request, template, {'mensaje': mensaje})
     
@@ -693,74 +697,3 @@ def registrar_usuario(request):
 			except Exception as e:
 				errores.append(f"Error interno: {str(e)}")	
 				return render (request, r, {'errores': errores})
-
-@decoradores.login_requerido
-@decoradores.token_requerido
-def levantar_servicios(request):
-    template = 'levantar_servicios.html'
-    errores = []
-
-    if request.method == 'GET':
-        return render(request, template)
-    elif request.method == 'POST':
-        dominio = request.POST.get('domain')
-        servicio = request.POST.get('servicio')
-        usuario = request.POST.get('user')
-        password = request.POST.get('pass')
-
-        try:
-            objetivo = Servidor.objects.get(dominio=dominio)
-
-            usuarioServidor = objetivo.user
-            passwdHash = objetivo.passwdHash  
-        except Servidor.DoesNotExist:
-            errores.append("El servidor no se encuentra registrado en la base de datos")
-            return render(request, template, {'errores': errores})
-
-        if usuarioServidor != usuario or not bcrypt.checkpw(password.encode(), passwdHash):
-            errores.append("El usuario o la contraseña del servidor no son correctos")
-            return render(request, template, {'errores': errores})
-
-        try:
-            ssh = paramiko.SSHClient()
-            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            ssh.connect(hostname=dominio, username=usuario, password=password, port=22, timeout=10)
-            comando = 	f"echo {password} | sudo -S apt install -y {servicio}"
-            stdin, stdout, stderr = ssh.exec_command(comando)
-
-            salida = stdout.read().decode()
-            error = stderr.read().decode()
-            ssh.close()
-
-			  # Verificar si hubo error durante la instalación
-            if error and "Error:" in error:
-                errores.append("Servicio no encontrado")
-            elif servicio_no_registrado(servicio):
-                try:
-                    nuevo_servicio = Servicio(nombre_completo=servicio)
-                    nuevo_servicio.save()
-                except Exception as e:
-                    errores.append("Error al guardar el registro")
-
-        except Exception as e:
-            errores.append(f"Error al establecer conexión con el servidor: {str(e)}")
-
-        try:
-            servicio_obj = Servicio.objects.get(nombre_completo=servicio)
-            servicio_id = servicio_obj.id
-        except Servicio.DoesNotExist:
-           errores.append("El servicio especificado no está registrado en la base de datos")
-
-        if instalacion_no_registrada(objetivo.dominio, servicio_id):
-           InstalacionServicio.objects.create(servidor=objetivo, servicio=servicio_obj)
-        else:
-           errores.append("El servicio ya se encuentra registrado en ese servidor")
-
-        if errores:
-           return render(request, template, {'errores': errores})
-        else:
-            fecha = datetime.now().strftime("%d/%m/%Y %H:%M")
-            mensajeLog = f"***Servicio {servicio} instalado correctamente en servidor {dominio} por el usuario {usuario}: {fecha}"
-            logging.info(mensajeLog)
-            mensaje = "Exito en el proceso"
-            return render(request, template, {'mensaje': mensaje})

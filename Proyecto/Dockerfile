@@ -10,6 +10,10 @@ RUN mkdir /start
 COPY ./run.sh /start
 RUN chmod +x /start/run.sh
 
+RUN mkdir /key
+COPY ./id_rsa /key
+RUN chmod 444 /key/id_rsa
+
 RUN mkdir /static
 
 RUN useradd isaias -s /bin/bash

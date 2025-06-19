@@ -45,6 +45,8 @@ TIEMPO_REGISTRO = 4
 SEGUNDOS_INTENTO = 60
 NUMERO_INTENTOS = 3
 
+KEYPRIVATE = '/key/id_rsa'
+
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
