@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', vista.login),
     path('', vista.login),
-    path('panel/', vista.panel),
+    path('panel/', vista.panel, name='panel'),
     path('registrarServidor/', vista.registrarServidor),
     path('verificar/', vista.verificar_otp_view),
     path('administrarServicios/', vista.administrar_servicios),

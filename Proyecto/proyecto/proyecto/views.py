@@ -14,6 +14,7 @@ from administrador.models import ContadorIntentos
 from administrador.models import InstalacionServicio
 from datetime import datetime, timedelta
 from proyecto import decoradores
+from concurrent.futures import ThreadPoolExecutor
 import paramiko
 import secrets
 import ipaddress
@@ -39,8 +40,8 @@ logging.basicConfig(level=logging.INFO,
 					datefmt='%d-%b-%y %H:%M:%S')
 
 class Servidor_No_Registrado(Exception):
-    def __init__(self, *args) -> None:
-        super().__init__(*args)
+	def __init__(self, *args) -> None:
+		super().__init__(*args)
 
 to = os.environ.get('TOKEN_T')
 chat = os.environ.get('CHAT_ID')
@@ -50,7 +51,7 @@ tiempo_caducidad = settings.TIEMPO_CADUCIDAD_OTP
 llave = settings.KEYPRIVATE
 
 def get_client_ip(request):
-    """_Funcion que recupera la solicitud hecha y regresa la direccion IP de origen_
+	"""_Funcion que recupera la solicitud hecha y regresa la direccion IP de origen_
 
 	Args:
 		request (_request_): _Recupera la solicitud_
@@ -59,78 +60,78 @@ def get_client_ip(request):
 		_ip_: _Regresa la direccion IP desde donde se hace la solicitud_
 	"""
 
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+	x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+	if x_forwarded_for:
+		ip = x_forwarded_for.split(',')[0]
+	else:
+		ip = request.META.get('REMOTE_ADDR')
+	return ip
 
 def instalacion_no_registrada(servidor, servicio):
-    """
-    Retorna True si la combinación servidor-servicio NO está registrada.
-    Retorna False si YA existe en la tabla InstalacionServicio.
-    """
-    return not InstalacionServicio.objects.filter(servidor=servidor, servicio=servicio).exists()
+	"""
+	Retorna True si la combinación servidor-servicio NO está registrada.
+	Retorna False si YA existe en la tabla InstalacionServicio.
+	"""
+	return not InstalacionServicio.objects.filter(servidor=servidor, servicio=servicio).exists()
 
 
 def ip_registrada(ip: str) -> bool:
-    """
-    True si la IP ya está en la BD.
+	"""
+	True si la IP ya está en la BD.
 
-    ip
-    returns: bool 
-    """
-    try:
-        ContadorIntentos.objects.get(pk=ip)
-        return True
-    except:
-        return False
+	ip
+	returns: bool 
+	"""
+	try:
+		ContadorIntentos.objects.get(pk=ip)
+		return True
+	except:
+		return False
 
 def fecha_en_ventana(fecha, segundos_ventana=settings.SEGUNDOS_INTENTO) -> bool:
-    """
-    True si la fecha está en la ventana de tiempo.
+	"""
+	True si la fecha está en la ventana de tiempo.
 
-    fecha
-    returns: bool 
-    """
-    actual = datetime.now(dt_timezone.utc)
-    diferencia = (actual - fecha).seconds
-    return diferencia <= segundos_ventana
-    
+	fecha
+	returns: bool 
+	"""
+	actual = datetime.now(dt_timezone.utc)
+	diferencia = (actual - fecha).seconds
+	return diferencia <= segundos_ventana
+	
 def tienes_intentos_login(request) -> bool:
-    """
-    Verdadero si puedes seguir intentando loguearte.
+	"""
+	Verdadero si puedes seguir intentando loguearte.
 
-    request
-    returns: bool 
-    """
-    ip = get_client_ip(request)
-    if not ip_registrada(ip):
-        registro = ContadorIntentos()
-        registro.ip = ip
-        registro.contador = 1
-        registro.ultimo_intento = datetime.now(dt_timezone.utc)
-        registro.save()
-        return True
+	request
+	returns: bool 
+	"""
+	ip = get_client_ip(request)
+	if not ip_registrada(ip):
+		registro = ContadorIntentos()
+		registro.ip = ip
+		registro.contador = 1
+		registro.ultimo_intento = datetime.now(dt_timezone.utc)
+		registro.save()
+		return True
 
-    registro = ContadorIntentos.objects.get(pk=ip)
-    fecha = registro.ultimo_intento
-    if not fecha_en_ventana(fecha):
-        registro.contador = 1
-        registro.ultimo_intento = datetime.now(dt_timezone.utc)
-        registro.save()
-        return True
+	registro = ContadorIntentos.objects.get(pk=ip)
+	fecha = registro.ultimo_intento
+	if not fecha_en_ventana(fecha):
+		registro.contador = 1
+		registro.ultimo_intento = datetime.now(dt_timezone.utc)
+		registro.save()
+		return True
 
-    if registro.contador < settings.NUMERO_INTENTOS:
-        registro.contador += 1
-        registro.ultimo_intento = datetime.now(dt_timezone.utc)
-        registro.save()
-        return True
+	if registro.contador < settings.NUMERO_INTENTOS:
+		registro.contador += 1
+		registro.ultimo_intento = datetime.now(dt_timezone.utc)
+		registro.save()
+		return True
 
-    registro.ultimo_intento = datetime.now(dt_timezone.utc)
-    registro.save()
-    return False
+	registro.ultimo_intento = datetime.now(dt_timezone.utc)
+	registro.save()
+	return False
 
 def servicio_no_registrado(nombre_servicio):
 	"""_Funcion que verifica si el servicio que se quiere instalar no se encuentra registrado en la base de datos_
@@ -161,25 +162,25 @@ def servicio_instalado_en_servidor(dominio, servicio):
 	return InstalacionServicio.objects.filter(servidor=servidor, servicio=servicio).exists()
 
 def es_dominio_o_ip(cadena):
-    cadena = cadena.strip()
-    # Verifica si es una dirección IP (IPv4 o IPv6)
-    try:
-        ipaddress.ip_address(cadena)
-        return True
-    except ValueError:
-        pass
+	cadena = cadena.strip()
+	# Verifica si es una dirección IP (IPv4 o IPv6)
+	try:
+		ipaddress.ip_address(cadena)
+		return True
+	except ValueError:
+		pass
 
-    # Verifica si es un dominio válido
-    dominio_regex = re.compile(
-        r"^(?=.{1,253}$)(?!\-)([a-zA-Z0-9\-]{1,63}(?<!\-)\.)+[a-zA-Z]{2,63}$"
-    )
-    if dominio_regex.match(cadena):
-        return True
+	# Verifica si es un dominio válido
+	dominio_regex = re.compile(
+		r"^(?=.{1,253}$)(?!\-)([a-zA-Z0-9\-]{1,63}(?<!\-)\.)+[a-zA-Z]{2,63}$"
+	)
+	if dominio_regex.match(cadena):
+		return True
 
-    return False
+	return False
 
 def recaptcha_verify(recaptcha_response: str) -> bool:
-    """_Funcion que verifica si se ha pasado el Recaptcha en el login de usuario_
+	"""_Funcion que verifica si se ha pasado el Recaptcha en el login de usuario_
 
 	Args:
 		recaptcha_response (str): _Respuesta que se envia al resolver el Recaptcha_
@@ -187,14 +188,14 @@ def recaptcha_verify(recaptcha_response: str) -> bool:
 	Returns:
 		bool: _Regresa True si el Recpatcha se ha pasado correctamente y regresa False si no se hizo_
 	"""
-    data = {
-      "secret": settings.RECAPTCHA_PRIVATE_KEY,
-      "response": recaptcha_response
-    }
+	data = {
+	  "secret": settings.RECAPTCHA_PRIVATE_KEY,
+	  "response": recaptcha_response
+	}
 
-    response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
-    result = response.json()
-    return result.get('success', False)
+	response = requests.post('https://www.google.com/recaptcha/api/siteverify', data=data)
+	result = response.json()
+	return result.get('success', False)
 
 
 def contiene_letra(contrasena):
@@ -220,7 +221,7 @@ def contiene_numero(contrasena):
 	return any(c.isdigit() for c in contrasena)
 
 def contiene_caracter_especial_seguro(contrasena):
-    """_Funcion que verifica si la contraseña hace match con algun digito de la expresion regular_
+	"""_Funcion que verifica si la contraseña hace match con algun digito de la expresion regular_
 
 	Args:
 		contrasena (_str_): _Contraseña que se verificara_
@@ -228,10 +229,53 @@ def contiene_caracter_especial_seguro(contrasena):
 	Returns:
 		_bool_: _Regresa True si hay algun caracter especial en la contraseña y False si no hay ningun caracter especial en la contraseña_
 	"""
-    caracteres_permitidos = r"_$-"
-    return any(c in caracteres_permitidos for c in contrasena)
+	caracteres_permitidos = r"_$-"
+	return any(c in caracteres_permitidos for c in contrasena)
 
+def obtener_servicios(servidor):
+	resultados = []
+	try:
+		key = paramiko.RSAKey.from_private_key_file(llave)
+		ssh = paramiko.SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(hostname=servidor.dominio, username=servidor.user, pkey=key)
+			
+		stdin, stdout, stderr = ssh.exec_command("sudo systemctl list-units --type=service --all --no-legend --no-pager")
+		salida = stdout.read().decode()
+		errores = stderr.read().decode()
+		ssh.close()
 
+		servicios = []
+		for linea in salida.strip().split('\n'):
+			if not linea.strip():
+				continue
+			partes = linea.split()
+			if len(partes) >= 4:
+				nombre = partes[0]
+				estado = partes[2]
+				servicios.append({
+					'nombre': nombre,
+					'estado': 'activo' if estado == 'active' else 'inactivo'
+				})
+				
+		return {
+			"etiqueta": servidor.etiqueta,
+			"ip": servidor.dominio,
+			"servicios": servicios
+		}
+	except Exception as e:
+		return {
+			"etiqueta": servidor.etiqueta,
+			"ip": servidor.dominio,
+			"error": "El servidor no responde"
+		}
+
+def listar_servicios_remotos():
+	servidores = Servidor.objects.all()
+	with ThreadPoolExecutor(max_workers=10) as executor:
+		resultados = list(executor.map(obtener_servicios, servidores))
+	return resultados
+			
 def politica_tamanio_contrasena(contrasena):
 	""" Verifica si la contraseña cumple con la longitud mínima requeridad (12 caracteres)
 
@@ -269,7 +313,7 @@ def campo_vacio(campo):
 	return campo.strip() == ''
 
 def validar_campo(campo):
-    """_Funcion que valida si un campo contiene digitos especiales_
+	"""_Funcion que valida si un campo contiene digitos especiales_
 
 	Args:
 		campo (_str_): _Cadena que se envia para ser validada_
@@ -277,10 +321,10 @@ def validar_campo(campo):
 	Returns:
 		_bool_: _Regresa True si la cadena no hace match con ningun caracter especial y false si hace con algun caracter_
 	"""
-    if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
-        return False
-    else:
-        return True
+	if re.match(r'^[a-zA-Z0-9 _-]+$', campo):
+		return False
+	else:
+		return True
 	
 def generar_otp():
 	"""Genera un código OTP (One-Time Password) aleatorio de 10 carcateres.
@@ -354,7 +398,7 @@ def enviar_otp_telegram(code):
 	chat_id = chat
 	url = f'https://api.telegram.org/bot{token}/sendMessage'
 	mensaje = f"Tu token de validación es: {code}"
-    
+	
 	datos = {
 		'chat_id':chat_id,
 		'text':mensaje,
@@ -440,21 +484,14 @@ def login(request):
 @decoradores.login_requerido
 @decoradores.token_requerido		
 def panel(request):
-	p = 'panel.html'
+	panel = 'panel.html'
 	errores = []
-	if request.method == 'GET':
-		try:
-			servidores = Servidor.objects.all().prefetch_related('instalacionservicio_set__servicio')
-		except Exception as e:
-			errores.append("Error al leer la base de datos")
+	if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+		data = listar_servicios_remotos()
+		return JsonResponse(data, safe=False)
 
-		if errores:
-			return render(request, p, {'errores': errores})
-		else:
-			return render(request, p, {'servidores': servidores})
-	elif request.method == 'POST':
-		return render(request, p)
-	
+	return render(request, panel)	
+		
 @decoradores.login_requerido
 @decoradores.token_requerido		
 def registrarServidor(request):
@@ -577,7 +614,7 @@ def administrar_servicios(request):
 			mensajeLog = f"+++Servicio {servicio} {accion} por el usuario {user_server}: {fecha}"
 			logging.info(mensajeLog)
 			return render(request, template, {'mensaje': mensaje})
-    
+	
 
 @decoradores.login_requerido
 def verificar_otp_view(request):
